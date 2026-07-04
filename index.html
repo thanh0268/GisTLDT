@@ -1,0 +1,3227 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hồ Dầu Tiếng - Production Style WebGIS (Single HTML)</title>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v10.6.1/ol.css">
+
+  <style>
+    :root{
+      --bg:#edf3f9;
+      --panel:#ffffff;
+      --panel-soft:#f7fbff;
+      --panel-2:#f3f7fc;
+      --border:#d7e2ef;
+      --text:#1f2d3d;
+      --muted:#607386;
+      --primary:#1565c0;
+      --primary-dark:#0d57ab;
+      --accent:#00897b;
+      --danger:#c62828;
+      --warning:#ef6c00;
+      --success:#2e7d32;
+      --header:#17324d;
+      --header-2:#24476d;
+      --shadow:0 2px 10px rgba(0,0,0,.08);
+      --shadow-soft:0 1px 4px rgba(0,0,0,.05);
+      --radius:12px;
+      --topbar-h:64px;
+      --statusbar-h:34px;
+      --sidebar-w:360px;
+      --rightbar-w:460px;
+    }
+
+    *{ box-sizing:border-box; }
+
+    html, body{
+      margin:0;
+      padding:0;
+      width:100%;
+      height:100%;
+      overflow:hidden;
+      font-family:Arial, Helvetica, sans-serif;
+      color:var(--text);
+      background:var(--bg);
+    }
+
+    #app{
+      width:100%;
+      height:100%;
+      display:grid;
+      grid-template-columns: var(--sidebar-w) 1fr var(--rightbar-w);
+      grid-template-rows: var(--topbar-h) 1fr var(--statusbar-h);
+      grid-template-areas:
+        "topbar topbar topbar"
+        "sidebar map rightbar"
+        "statusbar statusbar statusbar";
+    }
+
+    /* ============================================================
+       TOP BAR
+    ============================================================ */
+    .topbar{
+      grid-area:topbar;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:10px 16px;
+      background:linear-gradient(90deg, #17324d, #21476d);
+      color:#fff;
+      border-bottom:1px solid rgba(255,255,255,.08);
+      box-shadow:0 2px 12px rgba(0,0,0,.12);
+      z-index:20;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:14px;
+      min-width:0;
+    }
+
+    .brand-logo{
+      width:42px;
+      height:42px;
+      border-radius:10px;
+      background:linear-gradient(135deg, #1e88e5, #26a69a);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:700;
+      font-size:16px;
+      box-shadow:0 4px 12px rgba(0,0,0,.18);
+      flex:0 0 auto;
+    }
+
+    .brand-text{
+      min-width:0;
+    }
+
+    .brand-title{
+      font-size:20px;
+      font-weight:700;
+      line-height:1.1;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .brand-subtitle{
+      font-size:12px;
+      opacity:.9;
+      margin-top:3px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .topbar-right{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    .top-pill{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 12px;
+      border-radius:999px;
+      background:rgba(255,255,255,.10);
+      border:1px solid rgba(255,255,255,.14);
+      font-size:13px;
+      white-space:nowrap;
+    }
+
+    .top-pill .dot{
+      width:10px;
+      height:10px;
+      border-radius:50%;
+      background:#7CFC00;
+      box-shadow:0 0 10px rgba(124,252,0,.6);
+      flex:0 0 auto;
+    }
+
+    .top-btn{
+      border:0;
+      background:rgba(255,255,255,.12);
+      color:#fff;
+      padding:10px 12px;
+      border-radius:10px;
+      cursor:pointer;
+      font-size:13px;
+      border:1px solid rgba(255,255,255,.14);
+      transition:.15s ease;
+    }
+    .top-btn:hover{ background:rgba(255,255,255,.20); }
+
+    /* ============================================================
+       PANELS
+    ============================================================ */
+    .sidebar, .rightbar{
+      overflow-y:auto;
+      padding:12px;
+      background:var(--bg);
+    }
+
+    .sidebar{
+      grid-area:sidebar;
+      border-right:1px solid var(--border);
+    }
+
+    .rightbar{
+      grid-area:rightbar;
+      border-left:1px solid var(--border);
+    }
+
+    .map-area{
+      grid-area:map;
+      position:relative;
+      min-width:0;
+      min-height:0;
+      background:#eef3f8;
+    }
+
+    #map{
+      width:100%;
+      height:100%;
+    }
+
+    .statusbar{
+      grid-area:statusbar;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:0 12px;
+      background:#1f3b5b;
+      color:#eaf2fb;
+      font-size:12px;
+      border-top:1px solid rgba(255,255,255,.08);
+    }
+
+    .status-left, .status-right{
+      display:flex;
+      align-items:center;
+      gap:14px;
+      min-width:0;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    /* ============================================================
+       CARDS / COMMON
+    ============================================================ */
+    .card{
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow-soft);
+      padding:12px;
+      margin-bottom:12px;
+    }
+
+    .card h2{
+      margin:0 0 10px;
+      font-size:15px;
+      color:var(--header-2);
+    }
+
+    .section-title{
+      font-size:13px;
+      color:#29496b;
+      font-weight:700;
+      text-transform:uppercase;
+      margin:0 0 8px;
+      letter-spacing:.02em;
+    }
+
+    .small-note{
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.45;
+    }
+
+    .row{
+      display:flex;
+      gap:8px;
+      margin-bottom:8px;
+    }
+
+    .row > *{
+      flex:1;
+      min-width:0;
+    }
+
+    input[type="text"], select{
+      width:100%;
+      border:1px solid #cdd8e5;
+      border-radius:10px;
+      padding:10px 12px;
+      font-size:14px;
+      outline:none;
+      background:#fff;
+      color:var(--text);
+    }
+
+    input[type="text"]:focus, select:focus{
+      border-color:var(--primary);
+      box-shadow:0 0 0 3px rgba(21,101,192,.12);
+    }
+
+    button{
+      width:100%;
+      border:0;
+      border-radius:10px;
+      background:var(--primary);
+      color:#fff;
+      padding:10px 12px;
+      font-size:14px;
+      cursor:pointer;
+      transition:.15s ease;
+    }
+    button:hover{ background:var(--primary-dark); }
+
+    .btn-secondary{
+      background:#546e7a;
+    }
+    .btn-secondary:hover{
+      background:#455a64;
+    }
+
+    .btn-success{
+      background:var(--success);
+    }
+    .btn-success:hover{
+      filter:brightness(.95);
+    }
+
+    .btn-warning{
+      background:var(--warning);
+    }
+
+    .btn-danger{
+      background:var(--danger);
+    }
+
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:4px 10px;
+      border-radius:999px;
+      font-size:12px;
+      border:1px solid #d7e6f8;
+      background:#eef5fd;
+      color:#174ea6;
+      white-space:nowrap;
+    }
+
+    .pill{
+      display:inline-block;
+      padding:2px 8px;
+      border-radius:999px;
+      font-size:12px;
+      border:1px solid #dce7f5;
+      background:#eef4fb;
+      color:#24476d;
+      margin:2px 4px 2px 0;
+    }
+
+    .pill.alert-high{
+      background:#ffebee;
+      color:#b71c1c;
+      border-color:#ffcdd2;
+    }
+    .pill.alert-medium{
+      background:#fff3e0;
+      color:#e65100;
+      border-color:#ffe0b2;
+    }
+    .pill.ok{
+      background:#e8f5e9;
+      color:#1b5e20;
+      border-color:#c8e6c9;
+    }
+
+    .muted{
+      color:var(--muted);
+    }
+
+    /* ============================================================
+       SIDEBAR MODULES
+    ============================================================ */
+    .module-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+    }
+
+    .module-btn{
+      border:1px solid #dbe7f4;
+      background:var(--panel-soft);
+      color:#21476d;
+      padding:12px;
+      border-radius:12px;
+      text-align:left;
+      cursor:pointer;
+      transition:.15s ease;
+      min-height:84px;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      gap:8px;
+    }
+    .module-btn:hover{
+      background:#edf5ff;
+      border-color:#bfd7f5;
+    }
+    .module-btn.active{
+      background:#1565c0;
+      color:#fff;
+      border-color:#1565c0;
+      box-shadow:0 8px 18px rgba(21,101,192,.20);
+    }
+
+    .module-title{
+      font-weight:700;
+      font-size:14px;
+    }
+
+    .module-desc{
+      font-size:12px;
+      line-height:1.35;
+      opacity:.9;
+    }
+
+    .tree-group{
+      border:1px solid #e4edf6;
+      border-radius:10px;
+      background:#fbfdff;
+      padding:10px;
+      margin-bottom:8px;
+    }
+
+    .tree-group-title{
+      font-size:13px;
+      font-weight:700;
+      color:#29496b;
+      margin-bottom:8px;
+      text-transform:uppercase;
+    }
+
+    .tree-item{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      margin:6px 0;
+      font-size:14px;
+    }
+
+    .tree-item label{
+      flex:1;
+      cursor:pointer;
+      user-select:none;
+    }
+
+    .swatch{
+      width:16px;
+      height:16px;
+      border-radius:4px;
+      border:1px solid rgba(0,0,0,.12);
+      display:inline-block;
+      flex:0 0 auto;
+    }
+
+    .sw-water{ background:rgba(33,150,243,.45); border-color:#1565c0; }
+    .sw-main{ background:#0055ff; }
+    .sw-i{ background:#00a6ff; }
+    .sw-ii{ background:#00c853; }
+    .sw-iii{ background:#ff9800; }
+    .sw-sluice{ background:#d32f2f; border-radius:50%; }
+    .sw-pump{ background:#7b1fa2; border-radius:50%; }
+    .sw-station{ background:#f57c00; border-radius:50%; }
+    .sw-rain{ background:rgba(30,136,229,.30); border-color:#1e88e5; }
+    .sw-alert{ background:#ff5252; border-radius:50%; }
+
+    .status-box{
+      font-size:13px;
+      color:#42556a;
+      line-height:1.5;
+      background:#f5f8fc;
+      border:1px solid #e3ebf5;
+      border-radius:10px;
+      padding:10px;
+    }
+
+    /* ============================================================
+       KPI / DASHBOARD
+    ============================================================ */
+    .hero-kpis{
+      display:grid;
+      grid-template-columns:repeat(2, 1fr);
+      gap:10px;
+    }
+
+    .hero-kpi{
+      background:linear-gradient(180deg, #ffffff, #f7fbff);
+      border:1px solid #dfe9f4;
+      border-radius:12px;
+      padding:12px;
+      box-shadow:var(--shadow-soft);
+    }
+
+    .hero-kpi .k-label{
+      font-size:12px;
+      color:#607386;
+      margin-bottom:6px;
+    }
+
+    .hero-kpi .k-value{
+      font-size:24px;
+      font-weight:700;
+      color:#17324d;
+      line-height:1.1;
+    }
+
+    .hero-kpi .k-sub{
+      margin-top:6px;
+      font-size:12px;
+      color:#607386;
+    }
+
+    .mini-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+    }
+
+    .mini-stat{
+      background:#f8fbff;
+      border:1px solid #e1ebf6;
+      border-radius:10px;
+      padding:10px;
+    }
+
+    .mini-stat .label{
+      font-size:12px;
+      color:#607080;
+      margin-bottom:4px;
+    }
+
+    .mini-stat .value{
+      font-size:18px;
+      font-weight:700;
+      color:#1f3b5b;
+    }
+
+    .sparkline-wrap{
+      margin-top:10px;
+      border:1px solid #e2ebf5;
+      border-radius:10px;
+      background:#fbfdff;
+      padding:8px;
+    }
+
+    .sparkline-title{
+      font-size:12px;
+      color:#4f6378;
+      margin-bottom:6px;
+      font-weight:700;
+    }
+
+    canvas.sparkline{
+      width:100%;
+      height:90px;
+      display:block;
+      background:#fff;
+      border-radius:8px;
+      border:1px solid #eef3f8;
+    }
+
+    /* ============================================================
+       EVENT LOG / TABLE
+    ============================================================ */
+    .event-list{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      max-height:260px;
+      overflow:auto;
+      padding-right:2px;
+    }
+
+    .event-item{
+      border:1px solid #e1eaf5;
+      border-left:5px solid #90a4ae;
+      border-radius:10px;
+      background:#fff;
+      padding:10px;
+      box-shadow:var(--shadow-soft);
+      cursor:pointer;
+    }
+    .event-item:hover{
+      background:#f9fcff;
+    }
+
+    .event-item.high{ border-left-color:#d32f2f; }
+    .event-item.medium{ border-left-color:#ef6c00; }
+    .event-item.info{ border-left-color:#1976d2; }
+    .event-item.success{ border-left-color:#2e7d32; }
+
+    .event-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:6px;
+    }
+
+    .event-title{
+      font-weight:700;
+      font-size:14px;
+      color:#17324d;
+    }
+
+    .event-meta{
+      font-size:12px;
+      color:#607386;
+      line-height:1.4;
+    }
+
+    .event-desc{
+      font-size:13px;
+      color:#33485f;
+      line-height:1.45;
+      margin-top:6px;
+    }
+
+    .tabs{
+      display:flex;
+      gap:8px;
+      margin-bottom:10px;
+      flex-wrap:wrap;
+    }
+
+    .tab-btn{
+      background:#eef4fb;
+      color:#24476d;
+      border:1px solid #d9e6f5;
+      padding:8px 10px;
+      border-radius:10px;
+      cursor:pointer;
+      font-size:13px;
+      user-select:none;
+    }
+    .tab-btn.active{
+      background:#1565c0;
+      color:#fff;
+      border-color:#1565c0;
+    }
+
+    .table-wrap{
+      border:1px solid #dfe8f3;
+      border-radius:10px;
+      overflow:auto;
+      max-height:340px;
+      background:#fff;
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      font-size:13px;
+    }
+
+    thead th{
+      position:sticky;
+      top:0;
+      z-index:1;
+      background:#f3f7fb;
+      text-align:left;
+      padding:8px;
+      border-bottom:1px solid #dfe8f3;
+      color:#24476d;
+      white-space:nowrap;
+    }
+
+    tbody td{
+      padding:8px;
+      border-bottom:1px solid #edf2f7;
+      vertical-align:top;
+    }
+
+    tbody tr:hover{
+      background:#f8fbff;
+      cursor:pointer;
+    }
+
+    tbody tr.selected{
+      background:#e8f0fe;
+    }
+
+    .detail-empty{
+      color:#6a7c8f;
+      font-size:13px;
+      line-height:1.5;
+      background:#f7fafc;
+      border:1px dashed #dbe7f3;
+      border-radius:10px;
+      padding:10px;
+    }
+
+    .detail-table td:first-child{
+      width:140px;
+      color:#4b6078;
+      font-weight:700;
+      padding-right:8px;
+    }
+
+    /* ============================================================
+       MAP TOOLBAR
+    ============================================================ */
+    .map-toolbar{
+      position:absolute;
+      top:12px;
+      left:12px;
+      z-index:100;
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      max-width:calc(100% - 24px);
+    }
+
+    .tool-group{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      background:rgba(255,255,255,.96);
+      border:1px solid #dfe8f3;
+      border-radius:12px;
+      padding:8px;
+      box-shadow:var(--shadow);
+    }
+
+    .tool-group button{
+      width:auto;
+      white-space:nowrap;
+      padding:8px 10px;
+      font-size:13px;
+    }
+
+    .tool-group .tool-select{
+      min-width:140px;
+    }
+
+    .tool-badge{
+      position:absolute;
+      right:12px;
+      top:12px;
+      z-index:100;
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+      max-width:45%;
+    }
+
+    .floating-badge{
+      background:rgba(255,255,255,.96);
+      border:1px solid #dfe8f3;
+      border-radius:999px;
+      padding:8px 12px;
+      box-shadow:var(--shadow);
+      font-size:13px;
+      color:#24476d;
+      white-space:nowrap;
+    }
+
+    .timeline-panel{
+      position:absolute;
+      left:12px;
+      right:12px;
+      bottom:12px;
+      z-index:100;
+      background:rgba(255,255,255,.97);
+      border:1px solid #dfe8f3;
+      border-radius:14px;
+      box-shadow:var(--shadow);
+      padding:10px 12px;
+    }
+
+    .timeline-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:8px;
+      flex-wrap:wrap;
+    }
+
+    .timeline-title{
+      font-size:14px;
+      font-weight:700;
+      color:#24476d;
+    }
+
+    .timeline-meta{
+      font-size:13px;
+      color:#607386;
+    }
+
+    .timeline-controls{
+      display:grid;
+      grid-template-columns:auto 1fr auto;
+      gap:10px;
+      align-items:center;
+    }
+
+    .timeline-controls button{
+      width:auto;
+      padding:8px 12px;
+      font-size:13px;
+    }
+
+    .timeline-slider-wrap{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+
+    input[type="range"]{
+      width:100%;
+    }
+
+    .timeline-labels{
+      display:flex;
+      justify-content:space-between;
+      gap:8px;
+      font-size:11px;
+      color:#607386;
+      overflow:hidden;
+    }
+
+    /* ============================================================
+       POPUP / TOOLTIP
+    ============================================================ */
+    .ol-popup{
+      position:absolute;
+      background:#fff;
+      border:1px solid #cfd8e3;
+      border-radius:12px;
+      padding:12px;
+      min-width:280px;
+      max-width:380px;
+      box-shadow:0 10px 28px rgba(0,0,0,.22);
+      transform:translate(-50%, calc(-100% - 12px));
+      pointer-events:none;
+      z-index:1000;
+    }
+
+    .hidden{ display:none; }
+
+    .popup-title{
+      font-weight:700;
+      margin-bottom:8px;
+      color:#1d3557;
+      font-size:15px;
+    }
+
+    .popup-table{
+      width:100%;
+      border-collapse:collapse;
+      font-size:13px;
+    }
+
+    .popup-table td{
+      padding:4px 0;
+      vertical-align:top;
+      border-bottom:1px dashed #e5eaf1;
+    }
+
+    .popup-table td:first-child{
+      width:120px;
+      color:#4b6078;
+      font-weight:600;
+      padding-right:8px;
+    }
+
+    .ol-tooltip{
+      position:absolute;
+      background:rgba(0,0,0,.75);
+      color:white;
+      padding:4px 8px;
+      border-radius:6px;
+      white-space:nowrap;
+      font-size:12px;
+      pointer-events:none;
+      transform:translate(-50%, -100%);
+    }
+
+    .ol-tooltip-static{
+      background:#1f3b5b;
+      color:white;
+      border:1px solid rgba(255,255,255,.2);
+    }
+
+    /* ============================================================
+       RESPONSIVE
+    ============================================================ */
+    @media (max-width: 1500px){
+      :root{
+        --sidebar-w:330px;
+        --rightbar-w:400px;
+      }
+    }
+
+    @media (max-width: 1280px){
+      #app{
+        grid-template-columns: 320px 1fr 360px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <!-- =========================================================
+         TOP BAR
+    ========================================================== -->
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-logo">DT</div>
+        <div class="brand-text">
+          <div class="brand-title">Hệ thống WebGIS Hồ Dầu Tiếng</div>
+          <div class="brand-subtitle">
+            Production-style single HTML mockup · quản lý hồ – kênh – công trình – quan trắc – cảnh báo
+          </div>
+        </div>
+      </div>
+
+      <div class="topbar-right">
+        <div class="top-pill">
+          <span class="dot"></span>
+          <span id="sys-status-text">Chế độ demo vận hành</span>
+        </div>
+        <div class="top-pill">
+          <span id="current-time-text">--:--</span>
+        </div>
+        <button class="top-btn" id="btn-top-export">Xuất PNG</button>
+      </div>
+    </header>
+
+    <!-- =========================================================
+         LEFT SIDEBAR
+    ========================================================== -->
+    <aside class="sidebar">
+      <div class="card">
+        <h2>Module nghiệp vụ</h2>
+        <div class="module-grid" id="module-grid">
+          <div class="module-btn active" data-module="overview">
+            <div class="module-title">Tổng quan hồ</div>
+            <div class="module-desc">KPI hồ, mực nước, dung tích, vận hành tổng hợp</div>
+          </div>
+          <div class="module-btn" data-module="canal">
+            <div class="module-title">Mạng kênh</div>
+            <div class="module-desc">Kênh chính, cấp I/II/III, năng lực, trạng thái</div>
+          </div>
+          <div class="module-btn" data-module="structure">
+            <div class="module-title">Công trình</div>
+            <div class="module-desc">Cống, trạm bơm, cửa van, trạng thái vận hành</div>
+          </div>
+          <div class="module-btn" data-module="station">
+            <div class="module-title">Quan trắc</div>
+            <div class="module-desc">Mưa, mực nước, trạng thái online/offline</div>
+          </div>
+          <div class="module-btn" data-module="forecast">
+            <div class="module-title">Mưa & cảnh báo</div>
+            <div class="module-desc">Lớp mưa 24h/72h, điểm cảnh báo, sự kiện</div>
+          </div>
+          <div class="module-btn" data-module="operation">
+            <div class="module-title">Vận hành</div>
+            <div class="module-desc">Sự kiện, nhật ký, điểm nóng cần theo dõi</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Cây lớp bản đồ</h2>
+
+        <div class="tree-group">
+          <div class="tree-group-title">Nền</div>
+          <div class="tree-item">
+            <input type="checkbox" id="chk-osm" checked />
+            <span class="swatch" style="background:#d7dde5;"></span>
+            <label for="chk-osm">OpenStreetMap</label>
+          </div>
+        </div>
+
+        <div class="tree-group">
+          <div class="tree-group-title">Thủy lợi</div>
+
+          <div class="tree-item">
+            <input type="checkbox" id="chk-lake" checked />
+            <span class="swatch sw-water"></span>
+            <label for="chk-lake">Hồ Dầu Tiếng</label>
+          </div>
+
+          <div class="tree-item">
+            <input type="checkbox" id="chk-canals" checked />
+            <span class="swatch sw-main"></span>
+            <label for="chk-canals">Kênh thủy lợi</label>
+          </div>
+
+          <div class="tree-item" style="padding-left:24px;">
+            <input type="checkbox" id="chk-canal-labels" checked />
+            <span class="swatch" style="background:#fff;border-color:#bbb;"></span>
+            <label for="chk-canal-labels">Nhãn kênh</label>
+          </div>
+
+          <div class="tree-item">
+            <input type="checkbox" id="chk-structures" checked />
+            <span class="swatch sw-sluice"></span>
+            <label for="chk-structures">Công trình</label>
+          </div>
+
+          <div class="tree-item" style="padding-left:24px;">
+            <input type="checkbox" id="chk-structure-labels" checked />
+            <span class="swatch" style="background:#fff;border-color:#bbb;"></span>
+            <label for="chk-structure-labels">Nhãn công trình</label>
+          </div>
+
+          <div class="tree-item">
+            <input type="checkbox" id="chk-stations" checked />
+            <span class="swatch sw-station"></span>
+            <label for="chk-stations">Trạm quan trắc</label>
+          </div>
+
+          <div class="tree-item" style="padding-left:24px;">
+            <input type="checkbox" id="chk-station-labels" checked />
+            <span class="swatch" style="background:#fff;border-color:#bbb;"></span>
+            <label for="chk-station-labels">Nhãn trạm</label>
+          </div>
+
+          <div class="tree-item">
+            <input type="checkbox" id="chk-rain" checked />
+            <span class="swatch sw-rain"></span>
+            <label for="chk-rain">Lớp mưa theo thời gian</label>
+          </div>
+
+          <div class="tree-item">
+            <input type="checkbox" id="chk-alerts" checked />
+            <span class="swatch sw-alert"></span>
+            <label for="chk-alerts">Điểm cảnh báo / sự kiện</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Bộ lọc vận hành</h2>
+
+        <label class="small-note" for="filter-group">Nhóm dữ liệu</label>
+        <select id="filter-group">
+          <option value="ALL">Tất cả</option>
+          <option value="lake">Hồ</option>
+          <option value="canal">Kênh</option>
+          <option value="structure">Công trình</option>
+          <option value="station">Trạm quan trắc</option>
+          <option value="alert">Cảnh báo / sự kiện</option>
+        </select>
+
+        <div style="height:8px;"></div>
+
+        <label class="small-note" for="filter-canal-level">Cấp kênh</label>
+        <select id="filter-canal-level">
+          <option value="ALL">Tất cả</option>
+          <option value="main">Kênh chính</option>
+          <option value="I">Kênh cấp I</option>
+          <option value="II">Kênh cấp II</option>
+          <option value="III">Kênh cấp III</option>
+        </select>
+
+        <div style="height:8px;"></div>
+
+        <label class="small-note" for="filter-status">Trạng thái</label>
+        <select id="filter-status">
+          <option value="ALL">Tất cả</option>
+          <option value="active">active</option>
+          <option value="online">online</option>
+          <option value="standby">standby</option>
+          <option value="maintenance">maintenance</option>
+          <option value="offline">offline</option>
+          <option value="warning">warning</option>
+          <option value="critical">critical</option>
+        </select>
+
+        <div style="height:8px;"></div>
+
+        <label class="small-note" for="filter-keyword">Từ khóa tên / mã</label>
+        <input type="text" id="filter-keyword" placeholder="Ví dụ: Kênh, Cống, Trạm..." />
+
+        <div class="row" style="margin-top:8px;">
+          <button id="btn-apply-filter">Áp dụng</button>
+          <button id="btn-clear-filter" class="btn-secondary">Xóa lọc</button>
+        </div>
+
+        <div id="filter-status-box" class="status-box">
+          Chưa áp dụng bộ lọc.
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Tìm kiếm nhanh</h2>
+        <input type="text" id="search-input" placeholder="Nhập tên đối tượng / sự kiện..." />
+        <div class="row" style="margin-top:8px;">
+          <button id="btn-search">Tìm</button>
+          <button id="btn-clear-search" class="btn-secondary">Xóa</button>
+        </div>
+        <div id="search-result" class="status-box">Chưa tìm kiếm.</div>
+      </div>
+
+      <div class="card">
+        <h2>Nhập GeoJSON lớp tạm</h2>
+        <input type="file" id="file-geojson" accept=".geojson,.json" />
+        <div class="row" style="margin-top:8px;">
+          <button id="btn-load-geojson">Nạp GeoJSON</button>
+          <button id="btn-clear-import" class="btn-secondary">Xóa lớp tạm</button>
+        </div>
+        <div class="small-note">
+          Dùng để nạp nhanh dữ liệu xuất từ QGIS vào ứng dụng mà không cần backend.
+        </div>
+      </div>
+    </aside>
+
+    <!-- =========================================================
+         MAP
+    ========================================================== -->
+    <main class="map-area">
+      <div id="map"></div>
+
+      <div class="map-toolbar">
+        <div class="tool-group">
+          <button id="btn-fit-lake">Zoom hồ</button>
+          <button id="btn-reset" class="btn-secondary">Reset</button>
+          <button id="btn-export" class="btn-success">Xuất PNG</button>
+        </div>
+
+        <div class="tool-group">
+          <button id="btn-measure-line">Đo dài</button>
+          <button id="btn-measure-area">Đo diện tích</button>
+          <button id="btn-stop-measure" class="btn-secondary">Dừng đo</button>
+          <button id="btn-clear-measure" class="btn-danger">Xóa đo</button>
+        </div>
+
+        <div class="tool-group">
+          <select id="basemap-select" class="tool-select">
+            <option value="osm">OSM</option>
+            <option value="none">Không nền</option>
+          </select>
+          <select id="module-focus-select" class="tool-select">
+            <option value="overview">Tổng quan hồ</option>
+            <option value="canal">Mạng kênh</option>
+            <option value="structure">Công trình</option>
+            <option value="station">Quan trắc</option>
+            <option value="forecast">Mưa & cảnh báo</option>
+            <option value="operation">Vận hành</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="tool-badge">
+        <div class="floating-badge" id="floating-summary-1">Mực nước hồ: --</div>
+        <div class="floating-badge" id="floating-summary-2">Mưa 24h max: --</div>
+        <div class="floating-badge" id="floating-summary-3">Cảnh báo: --</div>
+      </div>
+
+      <div class="timeline-panel">
+        <div class="timeline-head">
+          <div class="timeline-title">Lớp thời gian / mưa / cảnh báo</div>
+          <div class="timeline-meta" id="timeline-meta">
+            Timestep: 0 · 00:00
+          </div>
+        </div>
+
+        <div class="timeline-controls">
+          <button id="btn-time-prev" class="btn-secondary">◀ Bước trước</button>
+
+          <div class="timeline-slider-wrap">
+            <input type="range" id="time-slider" min="0" max="3" step="1" value="0" />
+            <div class="timeline-labels" id="timeline-labels"></div>
+          </div>
+
+          <button id="btn-time-next">Bước sau ▶</button>
+        </div>
+      </div>
+
+      <div id="popup" class="ol-popup hidden">
+        <div id="popup-content"></div>
+      </div>
+    </main>
+
+    <!-- =========================================================
+         RIGHT BAR
+    ========================================================== -->
+    <aside class="rightbar">
+      <div class="card">
+        <h2>Dashboard vận hành</h2>
+
+        <div class="hero-kpis">
+          <div class="hero-kpi">
+            <div class="k-label">Mực nước hồ</div>
+            <div class="k-value" id="kpi-water-level">--</div>
+            <div class="k-sub" id="kpi-water-level-sub">So với mực nước dâng bình thường</div>
+          </div>
+
+          <div class="hero-kpi">
+            <div class="k-label">Dung tích hữu ích</div>
+            <div class="k-value" id="kpi-storage">--</div>
+            <div class="k-sub" id="kpi-storage-sub">Tỷ lệ lấp đầy hồ</div>
+          </div>
+
+          <div class="hero-kpi">
+            <div class="k-label">Lưu lượng xả</div>
+            <div class="k-value" id="kpi-release">--</div>
+            <div class="k-sub">m³/s</div>
+          </div>
+
+          <div class="hero-kpi">
+            <div class="k-label">Mưa max 24h</div>
+            <div class="k-value" id="kpi-rain-max">--</div>
+            <div class="k-sub">Theo timestep hiện tại</div>
+          </div>
+        </div>
+
+        <div class="sparkline-wrap">
+          <div class="sparkline-title">Diễn biến mực nước hồ (mock time series)</div>
+          <canvas id="spark-water" class="sparkline" width="700" height="180"></canvas>
+        </div>
+
+        <div class="sparkline-wrap">
+          <div class="sparkline-title">Diễn biến mưa max lưu vực (mock time series)</div>
+          <canvas id="spark-rain" class="sparkline" width="700" height="180"></canvas>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Tóm tắt hệ thống</h2>
+        <div class="mini-grid">
+          <div class="mini-stat">
+            <div class="label">Tổng kênh</div>
+            <div class="value" id="stat-total-canals">0</div>
+          </div>
+          <div class="mini-stat">
+            <div class="label">Công trình</div>
+            <div class="value" id="stat-total-structures">0</div>
+          </div>
+          <div class="mini-stat">
+            <div class="label">Trạm quan trắc</div>
+            <div class="value" id="stat-total-stations">0</div>
+          </div>
+          <div class="mini-stat">
+            <div class="label">Cảnh báo</div>
+            <div class="value" id="stat-total-alerts">0</div>
+          </div>
+          <div class="mini-stat">
+            <div class="label">Kênh chính</div>
+            <div class="value" id="stat-main-canals">0</div>
+          </div>
+          <div class="mini-stat">
+            <div class="label">Trạm online</div>
+            <div class="value" id="stat-online-stations">0</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Đối tượng đang chọn</h2>
+        <div id="selected-detail" class="detail-empty">
+          Chưa chọn đối tượng nào. Bạn có thể click trên bản đồ, bảng thuộc tính hoặc sự kiện.
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Nhật ký sự kiện / cảnh báo</h2>
+        <div id="event-list" class="event-list"></div>
+      </div>
+
+      <div class="card">
+        <h2>Bảng thuộc tính</h2>
+        <div class="tabs" id="attribute-tabs">
+          <div class="tab-btn active" data-tab="canal">Kênh</div>
+          <div class="tab-btn" data-tab="structure">Công trình</div>
+          <div class="tab-btn" data-tab="station">Trạm</div>
+          <div class="tab-btn" data-tab="alert">Cảnh báo</div>
+          <div class="tab-btn" data-tab="import">Lớp tạm</div>
+        </div>
+
+        <div class="table-wrap">
+          <table id="attribute-table">
+            <thead id="attribute-thead"></thead>
+            <tbody id="attribute-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Đo đạc</h2>
+        <div id="measure-info" class="status-box">
+          Chưa bật chế độ đo.
+        </div>
+      </div>
+    </aside>
+
+    <!-- =========================================================
+         STATUS BAR
+    ========================================================== -->
+    <footer class="statusbar">
+      <div class="status-left">
+        <span id="status-module">Module: Tổng quan hồ</span>
+        <span id="status-timestep">Timestep: 0</span>
+        <span id="status-selection">Selection: none</span>
+      </div>
+      <div class="status-right">
+        <span id="status-pointer">Lon/Lat: --</span>
+        <span id="status-zoom">Zoom: --</span>
+      </div>
+    </footer>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/ol@v10.6.1/dist/ol.js"></script>
+
+  <script>
+    // ============================================================
+    // 1) MOCK DATA - HỒ DẦU TIẾNG PRODUCTION STYLE
+    // ============================================================
+
+    // ---- 1.1 Time steps (ví dụ 4 bước thời gian)
+    const TIME_STEPS = [
+      { id: 0, label: '00:00', rainMax24h: 18, waterLevel: 23.60, storagePct: 71, release: 38 },
+      { id: 1, label: '06:00', rainMax24h: 42, waterLevel: 23.74, storagePct: 73, release: 42 },
+      { id: 2, label: '12:00', rainMax24h: 68, waterLevel: 23.92, storagePct: 76, release: 58 },
+      { id: 3, label: '18:00', rainMax24h: 95, waterLevel: 24.08, storagePct: 79, release: 72 }
+    ];
+
+    // ---- 1.2 Time series để vẽ sparkline
+    const WATER_LEVEL_SERIES = [23.25, 23.31, 23.40, 23.52, 23.60, 23.74, 23.92, 24.08];
+    const RAIN_SERIES = [5, 12, 18, 28, 42, 68, 82, 95];
+
+    // ---- 1.3 Hồ
+    const DATA_LAKE = {
+      "type":"FeatureCollection",
+      "features":[
+        {
+          "type":"Feature",
+          "properties":{
+            "id":"lake_dt",
+            "name":"Hồ Dầu Tiếng",
+            "feature_group":"lake",
+            "type":"reservoir",
+            "status":"active",
+            "province":"Tây Ninh / Bình Dương / Bình Phước",
+            "normal_level_m":24.40,
+            "dead_level_m":17.00,
+            "design_storage_mcm":1580,
+            "owner":"Hệ thống thủy lợi Dầu Tiếng"
+          },
+          "geometry":{
+            "type":"Polygon",
+            "coordinates":[[
+              [106.22,11.44],
+              [106.28,11.50],
+              [106.39,11.48],
+              [106.47,11.40],
+              [106.43,11.28],
+              [106.31,11.24],
+              [106.22,11.32],
+              [106.22,11.44]
+            ]]
+          }
+        }
+      ]
+    };
+
+    // ---- 1.4 Kênh
+    const DATA_CANALS = {
+      "type":"FeatureCollection",
+      "features":[
+        {
+          "type":"Feature",
+          "properties":{
+            "id":"canal_main_east",
+            "name":"Kênh chính Đông",
+            "feature_group":"canal",
+            "cap_kenh":"main",
+            "status":"active",
+            "length_km":35.2,
+            "capacity_m3s":42,
+            "served_area_ha":28000
+          },
+          "geometry":{"type":"LineString","coordinates":[[106.38,11.34],[106.52,11.28],[106.70,11.22]]}
+        },
+        {
+          "type":"Feature",
+          "properties":{
+            "id":"canal_i_01",
+            "name":"Kênh cấp I-01",
+            "feature_group":"canal",
+            "cap_kenh":"I",
+            "status":"active",
+            "length_km":12.4,
+            "capacity_m3s":12,
+            "served_area_ha":7600
+          },
+          "geometry":{"type":"LineString","coordinates":[[106.52,11.28],[106.60,11.35]]}
+        },
+        {
+          "type":"Feature",
+          "properties":{
+            "id":"canal_i_02",
+            "name":"Kênh cấp I-02",
+            "feature_group":"canal",
+            "cap_kenh":"I",
+            "status":"active",
+            "length_km":11.2,
+            "capacity_m3s":10,
+            "served_area_ha":6400
+          },
+          "geometry":{"type":"LineString","coordinates":[[106.44,11.36],[106.55,11.44]]}
+        },
+        {
+          "type":"Feature",
+          "properties":{
+            "id":"canal_ii_01",
+            "name":"Kênh cấp II-01",
+            "feature_group":"canal",
+            "cap_kenh":"II",
+            "status":"active",
+            "length_km":8.1,
+            "capacity_m3s":4.2,
+            "served_area_ha":2100
+          },
+          "geometry":{"type":"LineString","coordinates":[[106.60,11.35],[106.68,11.39]]}
+        },
+        {
+          "type":"Feature",
+          "properties":{
+            "id":"canal_ii_02",
+            "name":"Kênh cấp II-02",
+            "feature_group":"canal",
+            "cap_kenh":"II",
+            "status":"active",
+            "length_km":6.8,
+            "capacity_m3s":3.8,
+            "served_area_ha":1800
+          },
+          "geometry":{"type":"LineString","coordinates":[[106.53,11.27],[106.60,11.20]]}
+        },
+        {
+          "type":"Feature",
+          "properties":{
+            "id":"canal_iii_01",
+            "name":"Kênh cấp III-01",
+            "feature_group":"canal",
+            "cap_kenh":"III",
+            "status":"maintenance",
+            "length_km":5.3,
+            "capacity_m3s":1.2,
+            "served_area_ha":700
+          },
+          "geometry":{"type":"LineString","coordinates":[[106.46,11.30],[106.55,11.20]]}
+        },
+        {
+          "type":"Feature",
+          "properties":{
+            "id":"canal_iii_02",
+            "name":"Kênh cấp III-02",
+            "feature_group":"canal",
+            "cap_kenh":"III",
+            "status":"active",
+            "length_km":4.7,
+            "capacity_m3s":1.1,
+            "served_area_ha":620
+          },
+          "geometry":{"type":"LineString","coordinates":[[106.58,11.31],[106.63,11.25]]}
+        }
+      ]
+    };
+
+    // ---- 1.5 Công trình
+    const DATA_STRUCTURES = {
+      "type":"FeatureCollection",
+      "features":[
+        {
+          "type":"Feature",
+          "properties":{
+            "id":"sluice_01",
+            "name":"Cống lấy nước số 1",
+            "feature_group":"structure",
+            "type":"sluice",
+            "status":"active",
+            "gate_open_pct":62
+          },
+          "geometry":{"type":"Point","coordinates":[106.39,11.33]}
+        },
+        {
+          "type":"Feature",
+          "properties":{
+            "id":"sluice_02",
+            "name":"Cống lấy nước số 2",
+            "feature_group":"structure",
+            "type":"sluice",
+            "status":"active",
+            "gate_open_pct":54
+          },
+          "geometry":{"type":"Point","coordinates":[106.47,11.37]}
+        },
+        {
+          "type":"Feature",
+          "properties":{
+            "id":"pump_a",
+            "name":"Trạm bơm A",
+            "feature_group":"structure",
+            "type":"pump",
+            "status":"active",
+            "capacity_m3s":5.4
+          },
+          "geometry":{"type":"Point","coordinates":[106.58,11.31]}
+        },
+        {
+          "type":"Feature",
+          "properties":{
+            "id":"pump_b",
+            "name":"Trạm bơm B",
+            "feature_group":"structure",
+            "type":"pump",
+            "status":"standby",
+            "capacity_m3s":4.8
+          },
+          "geometry":{"type":"Point","coordinates":[106.61,11.22]}
+        }
+      ]
+    };
+
+    // ---- 1.6 Trạm quan trắc
+    const DATA_STATIONS = {
+      "type":"FeatureCollection",
+      "features":[
+        {
+          "type":"Feature",
+          "properties":{
+            "id":"rain_b",
+            "name":"Trạm mưa B",
+            "feature_group":"station",
+            "type":"rain",
+            "status":"online",
+            "rain_24h":[12,26,42,58],
+            "rain_72h":[28,54,88,120]
+          },
+          "geometry":{"type":"Point","coordinates":[106.48,11.41]}
+        },
+        {
+          "type":"Feature",
+          "properties":{
+            "id":"wl_c",
+            "name":"Trạm mực nước C",
+            "feature_group":"station",
+            "type":"water_level",
+            "status":"online",
+            "wl_m":[2.35,2.42,2.58,2.66]
+          },
+          "geometry":{"type":"Point","coordinates":[106.34,11.45]}
+        },
+        {
+          "type":"Feature",
+          "properties":{
+            "id":"rain_d",
+            "name":"Trạm mưa D",
+            "feature_group":"station",
+            "type":"rain",
+            "status":"offline",
+            "rain_24h":[8,14,20,31],
+            "rain_72h":[18,35,52,77]
+          },
+          "geometry":{"type":"Point","coordinates":[106.62,11.30]}
+        },
+        {
+          "type":"Feature",
+          "properties":{
+            "id":"wl_e",
+            "name":"Trạm mực nước E",
+            "feature_group":"station",
+            "type":"water_level",
+            "status":"online",
+            "wl_m":[1.92,1.95,2.02,2.08]
+          },
+          "geometry":{"type":"Point","coordinates":[106.55,11.23]}
+        }
+      ]
+    };
+
+    // ---- 1.7 Lớp mưa theo timestep (polygon đơn giản minh họa)
+    const DATA_RAIN_TIMESTEPS = [
+      {
+        timestep:0,
+        fc:{
+          "type":"FeatureCollection",
+          "features":[
+            {
+              "type":"Feature",
+              "properties":{"feature_group":"rain","name":"Mưa 24h - vùng 1","rain_mm":18,"status":"active"},
+              "geometry":{"type":"Polygon","coordinates":[[
+                [106.24,11.47],[106.34,11.49],[106.40,11.43],[106.32,11.37],[106.24,11.40],[106.24,11.47]
+              ]]}
+            },
+            {
+              "type":"Feature",
+              "properties":{"feature_group":"rain","name":"Mưa 24h - vùng 2","rain_mm":12,"status":"active"},
+              "geometry":{"type":"Polygon","coordinates":[[
+                [106.38,11.40],[106.48,11.43],[106.50,11.33],[106.40,11.29],[106.34,11.35],[106.38,11.40]
+              ]]}
+            }
+          ]
+        }
+      },
+      {
+        timestep:1,
+        fc:{
+          "type":"FeatureCollection",
+          "features":[
+            {
+              "type":"Feature",
+              "properties":{"feature_group":"rain","name":"Mưa 24h - vùng 1","rain_mm":42,"status":"active"},
+              "geometry":{"type":"Polygon","coordinates":[[
+                [106.24,11.47],[106.34,11.49],[106.40,11.43],[106.32,11.37],[106.24,11.40],[106.24,11.47]
+              ]]}
+            },
+            {
+              "type":"Feature",
+              "properties":{"feature_group":"rain","name":"Mưa 24h - vùng 2","rain_mm":30,"status":"active"},
+              "geometry":{"type":"Polygon","coordinates":[[
+                [106.38,11.40],[106.48,11.43],[106.50,11.33],[106.40,11.29],[106.34,11.35],[106.38,11.40]
+              ]]}
+            }
+          ]
+        }
+      },
+      {
+        timestep:2,
+        fc:{
+          "type":"FeatureCollection",
+          "features":[
+            {
+              "type":"Feature",
+              "properties":{"feature_group":"rain","name":"Mưa 24h - vùng 1","rain_mm":68,"status":"warning"},
+              "geometry":{"type":"Polygon","coordinates":[[
+                [106.24,11.47],[106.34,11.49],[106.40,11.43],[106.32,11.37],[106.24,11.40],[106.24,11.47]
+              ]]}
+            },
+            {
+              "type":"Feature",
+              "properties":{"feature_group":"rain","name":"Mưa 24h - vùng 2","rain_mm":52,"status":"active"},
+              "geometry":{"type":"Polygon","coordinates":[[
+                [106.38,11.40],[106.48,11.43],[106.50,11.33],[106.40,11.29],[106.34,11.35],[106.38,11.40]
+              ]]}
+            }
+          ]
+        }
+      },
+      {
+        timestep:3,
+        fc:{
+          "type":"FeatureCollection",
+          "features":[
+            {
+              "type":"Feature",
+              "properties":{"feature_group":"rain","name":"Mưa 24h - vùng 1","rain_mm":95,"status":"critical"},
+              "geometry":{"type":"Polygon","coordinates":[[
+                [106.24,11.47],[106.34,11.49],[106.40,11.43],[106.32,11.37],[106.24,11.40],[106.24,11.47]
+              ]]}
+            },
+            {
+              "type":"Feature",
+              "properties":{"feature_group":"rain","name":"Mưa 24h - vùng 2","rain_mm":72,"status":"warning"},
+              "geometry":{"type":"Polygon","coordinates":[[
+                [106.38,11.40],[106.48,11.43],[106.50,11.33],[106.40,11.29],[106.34,11.35],[106.38,11.40]
+              ]]}
+            }
+          ]
+        }
+      }
+    ];
+
+    // ---- 1.8 Alerts / events (point + log)
+    const DATA_ALERTS = {
+      "type":"FeatureCollection",
+      "features":[
+        {
+          "type":"Feature",
+          "properties":{
+            "id":"alert_1",
+            "name":"Mưa lớn vùng thượng lưu",
+            "feature_group":"alert",
+            "severity":"high",
+            "status":"critical",
+            "module":"forecast",
+            "time_step":3,
+            "message":"Mưa 24h vượt 90 mm tại vùng phía bắc lưu vực."
+          },
+          "geometry":{"type":"Point","coordinates":[106.31,11.44]}
+        },
+        {
+          "type":"Feature",
+          "properties":{
+            "id":"alert_2",
+            "name":"Kênh cấp III-01 bảo trì",
+            "feature_group":"alert",
+            "severity":"medium",
+            "status":"maintenance",
+            "module":"canal",
+            "time_step":0,
+            "message":"Kênh cấp III-01 đang bảo trì, cần lưu ý cấp nước nhánh cuối."
+          },
+          "geometry":{"type":"Point","coordinates":[106.50,11.25]}
+        },
+        {
+          "type":"Feature",
+          "properties":{
+            "id":"alert_3",
+            "name":"Trạm mưa D offline",
+            "feature_group":"alert",
+            "severity":"medium",
+            "status":"offline",
+            "module":"station",
+            "time_step":1,
+            "message":"Mất kết nối trạm mưa D từ 06:00."
+          },
+          "geometry":{"type":"Point","coordinates":[106.62,11.30]}
+        },
+        {
+          "type":"Feature",
+          "properties":{
+            "id":"alert_4",
+            "name":"Xả điều tiết tăng",
+            "feature_group":"alert",
+            "severity":"info",
+            "status":"active",
+            "module":"operation",
+            "time_step":2,
+            "message":"Lưu lượng xả điều tiết tăng lên 58 m³/s."
+          },
+          "geometry":{"type":"Point","coordinates":[106.39,11.33]}
+        }
+      ]
+    };
+
+    // Nhật ký sự kiện hiển thị panel phải
+    const EVENT_LOG = [
+      {
+        id:"ev1",
+        title:"Mưa lớn vùng thượng lưu",
+        severity:"high",
+        timeLabel:"18:00",
+        module:"forecast",
+        featureRef:"alert_1",
+        description:"Mưa 24h tại vùng bắc lưu vực đạt 95 mm. Cần theo dõi lưu lượng đến hồ và các nhánh kênh nhạy cảm."
+      },
+      {
+        id:"ev2",
+        title:"Xả điều tiết tăng",
+        severity:"info",
+        timeLabel:"12:00",
+        module:"operation",
+        featureRef:"alert_4",
+        description:"Lưu lượng xả điều tiết nâng lên 58 m³/s để đảm bảo an toàn vận hành hồ và cấp nước hạ du."
+      },
+      {
+        id:"ev3",
+        title:"Trạm mưa D offline",
+        severity:"medium",
+        timeLabel:"06:00",
+        module:"station",
+        featureRef:"alert_3",
+        description:"Mất tín hiệu từ trạm mưa D. Cần kiểm tra nguồn điện hoặc kết nối truyền số liệu."
+      },
+      {
+        id:"ev4",
+        title:"Kênh cấp III-01 bảo trì",
+        severity:"medium",
+        timeLabel:"00:00",
+        module:"canal",
+        featureRef:"alert_2",
+        description:"Đoạn kênh cấp III-01 đang bảo trì. Khuyến nghị theo dõi cấp nước cho các ô tưới cuối kênh."
+      }
+    ];
+
+    // ============================================================
+    // 2) OPENLAYERS ALIAS
+    // ============================================================
+    const Map = ol.Map;
+    const View = ol.View;
+    const Overlay = ol.Overlay;
+
+    const TileLayer = ol.layer.Tile;
+    const VectorLayer = ol.layer.Vector;
+
+    const OSM = ol.source.OSM;
+    const VectorSource = ol.source.Vector;
+
+    const GeoJSON = ol.format.GeoJSON;
+
+    const Fill = ol.style.Fill;
+    const Stroke = ol.style.Stroke;
+    const Style = ol.style.Style;
+    const CircleStyle = ol.style.Circle;
+    const Text = ol.style.Text;
+
+    const Draw = ol.interaction.Draw;
+    const Snap = ol.interaction.Snap;
+
+    const LineString = ol.geom.LineString;
+    const Polygon = ol.geom.Polygon;
+
+    const getLength = ol.sphere.getLength;
+    const getArea = ol.sphere.getArea;
+
+    const fromLonLat = ol.proj.fromLonLat;
+    const toLonLat = ol.proj.toLonLat;
+    const getCenter = ol.extent.getCenter;
+
+    // ============================================================
+    // 3) FORMAT + READ FEATURES
+    // ============================================================
+    const format = new GeoJSON();
+
+    function readFC(fc){
+      return format.readFeatures(fc, {
+        dataProjection:'EPSG:4326',
+        featureProjection:'EPSG:3857'
+      });
+    }
+
+    const lakeFeatures = readFC(DATA_LAKE);
+    const canalFeatures = readFC(DATA_CANALS);
+    const structureFeatures = readFC(DATA_STRUCTURES);
+    const stationFeatures = readFC(DATA_STATIONS);
+    const alertFeatures = readFC(DATA_ALERTS);
+
+    let rainFeaturesByStep = {};
+    DATA_RAIN_TIMESTEPS.forEach(item => {
+      rainFeaturesByStep[item.timestep] = readFC(item.fc);
+    });
+
+    let __idCounter = 1;
+    function ensureFeatureIds(features, prefix){
+      features.forEach(f => {
+        if (!f.getId()) {
+          const pid = f.get('id');
+          f.setId(pid || (prefix + '_' + (__idCounter++)));
+        }
+      });
+    }
+
+    ensureFeatureIds(lakeFeatures, 'lake');
+    ensureFeatureIds(canalFeatures, 'canal');
+    ensureFeatureIds(structureFeatures, 'structure');
+    ensureFeatureIds(stationFeatures, 'station');
+    ensureFeatureIds(alertFeatures, 'alert');
+    Object.keys(rainFeaturesByStep).forEach(k => ensureFeatureIds(rainFeaturesByStep[k], 'rain_' + k));
+
+    // ============================================================
+    // 4) SOURCES
+    // ============================================================
+    const lakeSource = new VectorSource({ features: lakeFeatures });
+    const canalSource = new VectorSource({ features: canalFeatures });
+    const structureSource = new VectorSource({ features: structureFeatures });
+    const stationSource = new VectorSource({ features: stationFeatures });
+    const alertSource = new VectorSource({ features: alertFeatures });
+
+    const rainSource = new VectorSource({ features: [] });
+    const importSource = new VectorSource();
+    const highlightSource = new VectorSource();
+    const measureSource = new VectorSource();
+
+    // ============================================================
+    // 5) APP STATE
+    // ============================================================
+    const STATE = {
+      module:'overview',
+      activeAttributeTab:'canal',
+      selectedFeature:null,
+      timeStep:0,
+      filters:{
+        group:'ALL',
+        canalLevel:'ALL',
+        status:'ALL',
+        keyword:''
+      },
+      showCanalLabels:true,
+      showStructureLabels:true,
+      showStationLabels:true
+    };
+
+    // ============================================================
+    // 6) STYLE HELPERS
+    // ============================================================
+    function getCanalColor(cap){
+      switch(cap){
+        case 'main': return '#0055ff';
+        case 'I': return '#00a6ff';
+        case 'II': return '#00c853';
+        case 'III': return '#ff9800';
+        default: return '#0088cc';
+      }
+    }
+
+    function getCanalWidth(cap){
+      switch(cap){
+        case 'main': return 5;
+        case 'I': return 4;
+        case 'II': return 3;
+        case 'III': return 2.5;
+        default: return 2.5;
+      }
+    }
+
+    function getStructureColor(type){
+      switch(type){
+        case 'sluice': return '#d32f2f';
+        case 'pump': return '#7b1fa2';
+        default: return '#6d4c41';
+      }
+    }
+
+    function getStructureRadius(type){
+      switch(type){
+        case 'sluice': return 8;
+        case 'pump': return 7;
+        default: return 6;
+      }
+    }
+
+    function getStationColor(type, status){
+      if(status === 'offline') return '#757575';
+      switch(type){
+        case 'rain': return '#1e88e5';
+        case 'water_level': return '#26a69a';
+        default: return '#f57c00';
+      }
+    }
+
+    function getRainFillColor(mm){
+      if(mm >= 90) return 'rgba(198,40,40,0.35)';
+      if(mm >= 70) return 'rgba(239,108,0,0.30)';
+      if(mm >= 40) return 'rgba(30,136,229,0.24)';
+      return 'rgba(66,165,245,0.18)';
+    }
+
+    function getAlertColor(sev){
+      switch(sev){
+        case 'high': return '#d32f2f';
+        case 'medium': return '#ef6c00';
+        case 'info': return '#1976d2';
+        case 'success': return '#2e7d32';
+        default: return '#546e7a';
+      }
+    }
+
+    function createTextStyle(text, fillColor='#1f2d3d', strokeColor='#fff', offsetY=-12){
+      return new Text({
+        text: text || '',
+        font: '12px Arial',
+        fill: new Fill({ color: fillColor }),
+        stroke: new Stroke({ color: strokeColor, width: 3 }),
+        overflow: true,
+        offsetY
+      });
+    }
+
+    const lakeStyle = new Style({
+      fill: new Fill({ color:'rgba(33,150,243,0.35)' }),
+      stroke: new Stroke({ color:'#1565c0', width:2 })
+    });
+
+    function canalStyle(feature){
+      const cap = feature.get('cap_kenh') || 'other';
+      return new Style({
+        stroke: new Stroke({
+          color:getCanalColor(cap),
+          width:getCanalWidth(cap)
+        }),
+        text: STATE.showCanalLabels ? createTextStyle(feature.get('name') || '') : undefined
+      });
+    }
+
+    function structureStyle(feature){
+      const type = feature.get('type') || 'other';
+      return new Style({
+        image: new CircleStyle({
+          radius:getStructureRadius(type),
+          fill:new Fill({ color:getStructureColor(type) }),
+          stroke:new Stroke({ color:'#fff', width:2 })
+        }),
+        text: STATE.showStructureLabels ? createTextStyle(feature.get('name') || '') : undefined
+      });
+    }
+
+    function stationStyle(feature){
+      const type = feature.get('type') || 'other';
+      const status = feature.get('status') || 'online';
+      return new Style({
+        image: new CircleStyle({
+          radius:7,
+          fill:new Fill({ color:getStationColor(type, status) }),
+          stroke:new Stroke({ color:'#fff', width:2 })
+        }),
+        text: STATE.showStationLabels ? createTextStyle(feature.get('name') || '') : undefined
+      });
+    }
+
+    function rainStyle(feature){
+      const mm = Number(feature.get('rain_mm') || 0);
+      return new Style({
+        fill:new Fill({ color:getRainFillColor(mm) }),
+        stroke:new Stroke({ color:'#1e88e5', width:1.5 }),
+        text:createTextStyle(String(mm) + ' mm', '#17324d', '#fff', 0)
+      });
+    }
+
+    function alertStyle(feature){
+      const sev = feature.get('severity') || 'info';
+      return new Style({
+        image:new CircleStyle({
+          radius:8,
+          fill:new Fill({ color:getAlertColor(sev) }),
+          stroke:new Stroke({ color:'#fff', width:2 })
+        }),
+        text:createTextStyle(feature.get('name') || '', '#1f2d3d', '#fff')
+      });
+    }
+
+    const importStyle = new Style({
+      stroke:new Stroke({ color:'#6a1b9a', width:3 }),
+      fill:new Fill({ color:'rgba(106,27,154,0.15)' }),
+      image:new CircleStyle({
+        radius:6,
+        fill:new Fill({ color:'#6a1b9a' }),
+        stroke:new Stroke({ color:'#fff', width:2 })
+      })
+    });
+
+    const highlightStyle = new Style({
+      stroke:new Stroke({ color:'#ff1744', width:5 }),
+      fill:new Fill({ color:'rgba(255,23,68,0.12)' }),
+      image:new CircleStyle({
+        radius:10,
+        fill:new Fill({ color:'#ff1744' }),
+        stroke:new Stroke({ color:'#fff', width:2 })
+      })
+    });
+
+    const measureStyle = new Style({
+      fill:new Fill({ color:'rgba(255,255,255,0.2)' }),
+      stroke:new Stroke({
+        color:'#ffcc33',
+        width:2,
+        lineDash:[10,10]
+      }),
+      image:new CircleStyle({
+        radius:5,
+        fill:new Fill({ color:'#ffcc33' })
+      })
+    });
+
+    // ============================================================
+    // 7) FILTERS
+    // ============================================================
+    function getFilterValues(){
+      return {
+        group:document.getElementById('filter-group').value,
+        canalLevel:document.getElementById('filter-canal-level').value,
+        status:document.getElementById('filter-status').value,
+        keyword:document.getElementById('filter-keyword').value.trim().toLowerCase()
+      };
+    }
+
+    function featurePassesFilter(feature){
+      const f = STATE.filters;
+      const group = feature.get('feature_group') || '';
+      const name = String(feature.get('name') || '').toLowerCase();
+      const status = feature.get('status') || '';
+      const canalLevel = feature.get('cap_kenh') || '';
+
+      if (f.group !== 'ALL' && group !== f.group) return false;
+      if (f.status !== 'ALL' && status !== f.status) return false;
+      if (f.keyword && !name.includes(f.keyword)) return false;
+
+      if (group === 'canal') {
+        if (f.canalLevel !== 'ALL' && canalLevel !== f.canalLevel) return false;
+      } else {
+        if (f.canalLevel !== 'ALL' && f.group === 'canal') return false;
+      }
+
+      return true;
+    }
+
+    // ============================================================
+    // 8) LAYERS
+    // ============================================================
+    const osmLayer = new TileLayer({
+      source:new OSM(),
+      visible:true
+    });
+
+    const lakeLayer = new VectorLayer({
+      source:lakeSource,
+      visible:true,
+      style:(feature) => featurePassesFilter(feature) ? lakeStyle : null
+    });
+
+    const canalLayer = new VectorLayer({
+      source:canalSource,
+      visible:true,
+      style:(feature) => featurePassesFilter(feature) ? canalStyle(feature) : null
+    });
+
+    const structureLayer = new VectorLayer({
+      source:structureSource,
+      visible:true,
+      style:(feature) => featurePassesFilter(feature) ? structureStyle(feature) : null
+    });
+
+    const stationLayer = new VectorLayer({
+      source:stationSource,
+      visible:true,
+      style:(feature) => featurePassesFilter(feature) ? stationStyle(feature) : null
+    });
+
+    const rainLayer = new VectorLayer({
+      source:rainSource,
+      visible:true,
+      style:(feature) => featurePassesFilter(feature) ? rainStyle(feature) : null
+    });
+
+    const alertLayer = new VectorLayer({
+      source:alertSource,
+      visible:true,
+      style:(feature) => featurePassesFilter(feature) ? alertStyle(feature) : null
+    });
+
+    const importLayer = new VectorLayer({
+      source:importSource,
+      visible:true,
+      style:importStyle
+    });
+
+    const highlightLayer = new VectorLayer({
+      source:highlightSource,
+      style:highlightStyle
+    });
+
+    const measureLayer = new VectorLayer({
+      source:measureSource,
+      style:measureStyle
+    });
+
+    // ============================================================
+    // 9) POPUP
+    // ============================================================
+    const popupEl = document.getElementById('popup');
+    const popupContentEl = document.getElementById('popup-content');
+
+    const popupOverlay = new Overlay({
+      element:popupEl,
+      positioning:'bottom-center',
+      stopEvent:false,
+      offset:[0,-10]
+    });
+
+    function escapeHtml(str){
+      return String(str)
+        .replaceAll('&','&amp;')
+        .replaceAll('<','&lt;')
+        .replaceAll('>','&gt;')
+        .replaceAll('"','&quot;')
+        .replaceAll("'",'&#039;');
+    }
+
+    function buildPopupHtml(feature){
+      const props = { ...feature.getProperties() };
+      delete props.geometry;
+
+      const title = props.name || 'Đối tượng';
+      const rows = Object.entries(props).map(([k,v]) => `
+        <tr>
+          <td>${escapeHtml(k)}</td>
+          <td>${escapeHtml(String(v ?? ''))}</td>
+        </tr>
+      `).join('');
+
+      return `
+        <div class="popup-title">${escapeHtml(title)}</div>
+        <table class="popup-table">${rows}</table>
+      `;
+    }
+
+    function showPopup(feature, coordinate){
+      popupContentEl.innerHTML = buildPopupHtml(feature);
+      popupOverlay.setPosition(coordinate);
+      popupEl.classList.remove('hidden');
+    }
+
+    function hidePopup(){
+      popupOverlay.setPosition(undefined);
+      popupEl.classList.add('hidden');
+    }
+
+    // ============================================================
+    // 10) MAP
+    // ============================================================
+    const defaultCenter = fromLonLat([106.35,11.35]);
+    const defaultZoom = 10;
+
+    const map = new Map({
+      target:'map',
+      layers:[
+        osmLayer,
+        rainLayer,
+        lakeLayer,
+        canalLayer,
+        structureLayer,
+        stationLayer,
+        alertLayer,
+        importLayer,
+        measureLayer,
+        highlightLayer
+      ],
+      overlays:[popupOverlay],
+      view:new View({
+        center:defaultCenter,
+        zoom:defaultZoom,
+        minZoom:8,
+        maxZoom:18
+      })
+    });
+
+    // ============================================================
+    // 11) CORE HELPERS
+    // ============================================================
+    function getAllFeatures(){
+      return [
+        ...lakeSource.getFeatures(),
+        ...canalSource.getFeatures(),
+        ...structureSource.getFeatures(),
+        ...stationSource.getFeatures(),
+        ...alertSource.getFeatures(),
+        ...rainSource.getFeatures(),
+        ...importSource.getFeatures()
+      ];
+    }
+
+    function findFeatureById(fid){
+      return getAllFeatures().find(f => String(f.getId()) === String(fid) || String(f.get('id')) === String(fid)) || null;
+    }
+
+    function getFeatureDisplayType(feature){
+      const g = feature.get('feature_group');
+      if (g === 'canal') return 'canal/' + (feature.get('cap_kenh') || '');
+      if (g === 'structure') return 'structure/' + (feature.get('type') || '');
+      if (g === 'station') return 'station/' + (feature.get('type') || '');
+      if (g === 'alert') return 'alert/' + (feature.get('severity') || '');
+      return g || 'feature';
+    }
+
+    function cloneForHighlight(feature){
+      const c = feature.clone();
+      c.setGeometry(feature.getGeometry().clone());
+      return c;
+    }
+
+    function setHighlight(feature){
+      highlightSource.clear();
+      if (feature) highlightSource.addFeature(cloneForHighlight(feature));
+    }
+
+    function clearHighlight(){
+      highlightSource.clear();
+    }
+
+    function fitLake(){
+      const extent = lakeSource.getExtent();
+      if (extent && !isNaN(extent[0])) {
+        map.getView().fit(extent, {
+          padding:[50,50,50,50],
+          duration:700,
+          maxZoom:12
+        });
+      }
+    }
+
+    function zoomToFeature(feature){
+      if (!feature) return;
+      const extent = feature.getGeometry().getExtent();
+      map.getView().fit(extent, {
+        padding:[80,80,80,80],
+        duration:700,
+        maxZoom:15
+      });
+      const center = getCenter(extent);
+      selectFeature(feature, center);
+    }
+
+    function selectFeature(feature, coordinate){
+      STATE.selectedFeature = feature;
+      renderSelectedDetail(feature);
+      setHighlight(feature);
+      if (coordinate) showPopup(feature, coordinate);
+      else showPopup(feature, getCenter(feature.getGeometry().getExtent()));
+      highlightSelectedRow();
+      updateStatusBar();
+    }
+
+    // ============================================================
+    // 12) RAIN TIMESTEP
+    // ============================================================
+    function setTimeStep(step){
+      if (step < 0) step = 0;
+      if (step >= TIME_STEPS.length) step = TIME_STEPS.length - 1;
+
+      STATE.timeStep = step;
+      const features = rainFeaturesByStep[step] || [];
+      rainSource.clear();
+      rainSource.addFeatures(features.map(f => {
+        const c = f.clone();
+        c.setId(f.getId());
+        return c;
+      }));
+
+      document.getElementById('time-slider').value = String(step);
+      document.getElementById('timeline-meta').textContent = `Timestep: ${step} · ${TIME_STEPS[step].label}`;
+      document.getElementById('status-timestep').textContent = `Timestep: ${step} (${TIME_STEPS[step].label})`;
+
+      renderDashboard();
+      renderEventLog();
+      renderAttributeTable();
+      updateStats();
+      rainLayer.changed();
+      alertLayer.changed();
+    }
+
+    // ============================================================
+    // 13) MODULE FOCUS
+    // ============================================================
+    function setModule(moduleName){
+      STATE.module = moduleName;
+
+      document.querySelectorAll('.module-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.module === moduleName);
+      });
+      document.getElementById('module-focus-select').value = moduleName;
+
+      // focus layer visibility / tab gợi ý
+      switch(moduleName){
+        case 'overview':
+          lakeLayer.setVisible(true);
+          canalLayer.setVisible(true);
+          structureLayer.setVisible(true);
+          stationLayer.setVisible(true);
+          rainLayer.setVisible(true);
+          alertLayer.setVisible(true);
+          break;
+
+        case 'canal':
+          lakeLayer.setVisible(true);
+          canalLayer.setVisible(true);
+          structureLayer.setVisible(false);
+          stationLayer.setVisible(false);
+          rainLayer.setVisible(false);
+          alertLayer.setVisible(true);
+          STATE.activeAttributeTab = 'canal';
+          break;
+
+        case 'structure':
+          lakeLayer.setVisible(true);
+          canalLayer.setVisible(true);
+          structureLayer.setVisible(true);
+          stationLayer.setVisible(false);
+          rainLayer.setVisible(false);
+          alertLayer.setVisible(true);
+          STATE.activeAttributeTab = 'structure';
+          break;
+
+        case 'station':
+          lakeLayer.setVisible(true);
+          canalLayer.setVisible(false);
+          structureLayer.setVisible(false);
+          stationLayer.setVisible(true);
+          rainLayer.setVisible(false);
+          alertLayer.setVisible(true);
+          STATE.activeAttributeTab = 'station';
+          break;
+
+        case 'forecast':
+          lakeLayer.setVisible(true);
+          canalLayer.setVisible(false);
+          structureLayer.setVisible(false);
+          stationLayer.setVisible(true);
+          rainLayer.setVisible(true);
+          alertLayer.setVisible(true);
+          STATE.activeAttributeTab = 'alert';
+          break;
+
+        case 'operation':
+          lakeLayer.setVisible(true);
+          canalLayer.setVisible(true);
+          structureLayer.setVisible(true);
+          stationLayer.setVisible(true);
+          rainLayer.setVisible(true);
+          alertLayer.setVisible(true);
+          STATE.activeAttributeTab = 'alert';
+          break;
+      }
+
+      syncCheckboxesFromLayers();
+      syncActiveTabButtons();
+      renderAttributeTable();
+      renderEventLog();
+      updateStatusBar();
+    }
+
+    function syncCheckboxesFromLayers(){
+      document.getElementById('chk-lake').checked = lakeLayer.getVisible();
+      document.getElementById('chk-canals').checked = canalLayer.getVisible();
+      document.getElementById('chk-structures').checked = structureLayer.getVisible();
+      document.getElementById('chk-stations').checked = stationLayer.getVisible();
+      document.getElementById('chk-rain').checked = rainLayer.getVisible();
+      document.getElementById('chk-alerts').checked = alertLayer.getVisible();
+    }
+
+    // ============================================================
+    // 14) DASHBOARD
+    // ============================================================
+    function renderDashboard(){
+      const ts = TIME_STEPS[STATE.timeStep];
+
+      document.getElementById('kpi-water-level').textContent = ts.waterLevel.toFixed(2) + ' m';
+      document.getElementById('kpi-water-level-sub').textContent =
+        `MNDBT 24.40 m · thấp hơn ${(24.40 - ts.waterLevel).toFixed(2)} m`;
+
+      document.getElementById('kpi-storage').textContent = ts.storagePct + '%';
+      document.getElementById('kpi-storage-sub').textContent =
+        `≈ ${(1580 * ts.storagePct / 100).toFixed(0)} triệu m³ / 1580`;
+
+      document.getElementById('kpi-release').textContent = ts.release.toFixed(0);
+      document.getElementById('kpi-rain-max').textContent = ts.rainMax24h.toFixed(0) + ' mm';
+
+      document.getElementById('floating-summary-1').textContent = 'Mực nước hồ: ' + ts.waterLevel.toFixed(2) + ' m';
+      document.getElementById('floating-summary-2').textContent = 'Mưa 24h max: ' + ts.rainMax24h.toFixed(0) + ' mm';
+
+      const currentAlerts = getVisibleAlertsForCurrentTime();
+      document.getElementById('floating-summary-3').textContent = 'Cảnh báo: ' + currentAlerts.length;
+
+      drawSparkline(document.getElementById('spark-water'), WATER_LEVEL_SERIES, {
+        title:'Mực nước',
+        valueFormatter:v => v.toFixed(2)
+      });
+
+      drawSparkline(document.getElementById('spark-rain'), RAIN_SERIES, {
+        title:'Mưa',
+        valueFormatter:v => v.toFixed(0)
+      });
+    }
+
+    function drawSparkline(canvas, values, options={}){
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width;
+      const h = canvas.height;
+      ctx.clearRect(0,0,w,h);
+
+      const pad = 20;
+      const min = Math.min(...values);
+      const max = Math.max(...values);
+      const range = (max - min) || 1;
+
+      // background
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0,0,w,h);
+
+      // grid
+      ctx.strokeStyle = '#eef3f8';
+      ctx.lineWidth = 1;
+      for(let i=0;i<4;i++){
+        const y = pad + (h - pad*2) * (i/3);
+        ctx.beginPath();
+        ctx.moveTo(pad, y);
+        ctx.lineTo(w-pad, y);
+        ctx.stroke();
+      }
+
+      // line
+      ctx.strokeStyle = '#1565c0';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      values.forEach((v, idx) => {
+        const x = pad + idx * ((w - pad*2) / Math.max(values.length - 1, 1));
+        const y = h - pad - ((v - min) / range) * (h - pad*2);
+        if(idx===0) ctx.moveTo(x,y);
+        else ctx.lineTo(x,y);
+      });
+      ctx.stroke();
+
+      // points
+      ctx.fillStyle = '#1565c0';
+      values.forEach((v, idx) => {
+        const x = pad + idx * ((w - pad*2) / Math.max(values.length - 1, 1));
+        const y = h - pad - ((v - min) / range) * (h - pad*2);
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, Math.PI*2);
+        ctx.fill();
+      });
+
+      // last label
+      const last = values[values.length-1];
+      const lx = pad + (values.length-1) * ((w - pad*2) / Math.max(values.length - 1, 1));
+      const ly = h - pad - ((last - min) / range) * (h - pad*2);
+
+      ctx.fillStyle = '#17324d';
+      ctx.font = '12px Arial';
+      const label = options.valueFormatter ? options.valueFormatter(last) : String(last);
+      ctx.fillText(label, Math.min(lx + 8, w - 60), Math.max(ly - 8, 14));
+    }
+
+    // ============================================================
+    // 15) STATS
+    // ============================================================
+    function getVisibleCanals(){ return canalSource.getFeatures().filter(featurePassesFilter); }
+    function getVisibleStructures(){ return structureSource.getFeatures().filter(featurePassesFilter); }
+    function getVisibleStations(){ return stationSource.getFeatures().filter(featurePassesFilter); }
+    function getVisibleAlerts(){ return alertSource.getFeatures().filter(featurePassesFilter); }
+
+    function getVisibleAlertsForCurrentTime(){
+      return getVisibleAlerts().filter(f => {
+        const ts = Number(f.get('time_step'));
+        return ts <= STATE.timeStep;
+      });
+    }
+
+    function updateStats(){
+      const canals = getVisibleCanals();
+      const structures = getVisibleStructures();
+      const stations = getVisibleStations();
+      const alerts = getVisibleAlertsForCurrentTime();
+
+      const mainCanals = canals.filter(f => f.get('cap_kenh') === 'main').length;
+      const onlineStations = stations.filter(f => f.get('status') === 'online').length;
+
+      document.getElementById('stat-total-canals').textContent = canals.length;
+      document.getElementById('stat-total-structures').textContent = structures.length;
+      document.getElementById('stat-total-stations').textContent = stations.length;
+      document.getElementById('stat-total-alerts').textContent = alerts.length;
+      document.getElementById('stat-main-canals').textContent = mainCanals;
+      document.getElementById('stat-online-stations').textContent = onlineStations;
+    }
+
+    // ============================================================
+    // 16) SELECTED DETAIL
+    // ============================================================
+    function renderSelectedDetail(feature){
+      const container = document.getElementById('selected-detail');
+
+      if(!feature){
+        container.className = 'detail-empty';
+        container.innerHTML = 'Chưa chọn đối tượng nào. Bạn có thể click trên bản đồ, bảng thuộc tính hoặc sự kiện.';
+        return;
+      }
+
+      const props = { ...feature.getProperties() };
+      delete props.geometry;
+
+      const pills = [];
+      if (props.feature_group) pills.push(`<span class="pill">${escapeHtml(props.feature_group)}</span>`);
+      if (props.cap_kenh) pills.push(`<span class="pill">Cấp ${escapeHtml(props.cap_kenh)}</span>`);
+      if (props.type) pills.push(`<span class="pill">${escapeHtml(props.type)}</span>`);
+      if (props.status) pills.push(`<span class="pill">${escapeHtml(props.status)}</span>`);
+      if (props.severity) pills.push(`<span class="pill alert-${props.severity === 'high' ? 'high' : 'medium'}">${escapeHtml(props.severity)}</span>`);
+
+      const rows = Object.entries(props).map(([k,v]) => `
+        <tr>
+          <td>${escapeHtml(k)}</td>
+          <td>${escapeHtml(Array.isArray(v) ? JSON.stringify(v) : String(v ?? ''))}</td>
+        </tr>
+      `).join('');
+
+      container.className = '';
+      container.innerHTML = `
+        <div class="section-title">Thông tin chi tiết</div>
+        <div style="font-size:18px;font-weight:700;color:#1f3b5b;margin-bottom:6px;">
+          ${escapeHtml(props.name || 'Đối tượng')}
+        </div>
+        <div style="margin-bottom:8px;">${pills.join('')}</div>
+        <table class="popup-table detail-table">${rows}</table>
+      `;
+    }
+
+    // ============================================================
+    // 17) ATTRIBUTE TABLE
+    // ============================================================
+    const attributeThead = document.getElementById('attribute-thead');
+    const attributeTbody = document.getElementById('attribute-tbody');
+
+    function getRowsForTab(tab){
+      if(tab === 'canal') return canalSource.getFeatures().filter(featurePassesFilter);
+      if(tab === 'structure') return structureSource.getFeatures().filter(featurePassesFilter);
+      if(tab === 'station') return stationSource.getFeatures().filter(featurePassesFilter);
+      if(tab === 'alert') return getVisibleAlertsForCurrentTime();
+      if(tab === 'import') return importSource.getFeatures();
+      return [];
+    }
+
+    function getColumnsForTab(tab){
+      if(tab === 'canal') return ['name','cap_kenh','status','length_km','capacity_m3s'];
+      if(tab === 'structure') return ['name','type','status','capacity_m3s','gate_open_pct'];
+      if(tab === 'station') return ['name','type','status'];
+      if(tab === 'alert') return ['name','severity','status','module','time_step'];
+      if(tab === 'import') return ['name','feature_group','type','status'];
+      return ['name'];
+    }
+
+    function renderAttributeTable(){
+      const tab = STATE.activeAttributeTab;
+      const rows = getRowsForTab(tab);
+      const cols = getColumnsForTab(tab);
+
+      attributeThead.innerHTML = `<tr>${cols.map(c => `<th>${escapeHtml(c)}</th>`).join('')}</tr>`;
+
+      if(!rows.length){
+        attributeTbody.innerHTML = `<tr><td colspan="${cols.length}" class="muted">Không có đối tượng phù hợp.</td></tr>`;
+        return;
+      }
+
+      attributeTbody.innerHTML = rows.map(f => {
+        const fid = f.getId();
+        const selectedClass = STATE.selectedFeature && STATE.selectedFeature.getId() === fid ? 'selected' : '';
+        return `
+          <tr data-feature-id="${escapeHtml(fid)}" class="${selectedClass}">
+            ${cols.map(c => `<td>${escapeHtml(String(f.get(c) ?? ''))}</td>`).join('')}
+          </tr>
+        `;
+      }).join('');
+
+      attributeTbody.querySelectorAll('tr[data-feature-id]').forEach(tr => {
+        tr.addEventListener('click', () => {
+          const fid = tr.getAttribute('data-feature-id');
+          const feature = findFeatureById(fid);
+          if(feature) zoomToFeature(feature);
+        });
+      });
+    }
+
+    function syncActiveTabButtons(){
+      document.querySelectorAll('#attribute-tabs .tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === STATE.activeAttributeTab);
+      });
+    }
+
+    function highlightSelectedRow(){
+      attributeTbody.querySelectorAll('tr[data-feature-id]').forEach(tr => {
+        const fid = tr.getAttribute('data-feature-id');
+        const selected = STATE.selectedFeature && String(STATE.selectedFeature.getId()) === String(fid);
+        tr.classList.toggle('selected', !!selected);
+      });
+    }
+
+    // ============================================================
+    // 18) EVENT LOG
+    // ============================================================
+    function renderEventLog(){
+      const container = document.getElementById('event-list');
+
+      const filtered = EVENT_LOG.filter(ev => {
+        // chỉ show event đã xảy ra tới timestep hiện tại
+        const feature = findFeatureById(ev.featureRef);
+        if (!feature) return false;
+        const ts = Number(feature.get('time_step') ?? 0);
+        if (ts > STATE.timeStep) return false;
+
+        // nếu module đang focus cụ thể thì ưu tiên event cùng module
+        if (STATE.module !== 'overview' && STATE.module !== 'operation') {
+          return ev.module === STATE.module;
+        }
+        return true;
+      });
+
+      if(!filtered.length){
+        container.innerHTML = `<div class="detail-empty">Không có sự kiện phù hợp ở timestep hiện tại.</div>`;
+        return;
+      }
+
+      container.innerHTML = filtered.map(ev => `
+        <div class="event-item ${escapeHtml(ev.severity)}" data-feature-ref="${escapeHtml(ev.featureRef)}">
+          <div class="event-head">
+            <div class="event-title">${escapeHtml(ev.title)}</div>
+            <div class="badge">${escapeHtml(ev.timeLabel)}</div>
+          </div>
+          <div class="event-meta">Module: ${escapeHtml(ev.module)} · Severity: ${escapeHtml(ev.severity)}</div>
+          <div class="event-desc">${escapeHtml(ev.description)}</div>
+        </div>
+      `).join('');
+
+      container.querySelectorAll('.event-item').forEach(item => {
+        item.addEventListener('click', () => {
+          const ref = item.getAttribute('data-feature-ref');
+          const feature = findFeatureById(ref);
+          if(feature) zoomToFeature(feature);
+        });
+      });
+    }
+
+    // ============================================================
+    // 19) FILTER ACTIONS
+    // ============================================================
+    function updateFilterStatusBox(){
+      const box = document.getElementById('filter-status-box');
+      const f = STATE.filters;
+      const parts = [];
+
+      if(f.group !== 'ALL') parts.push('nhóm=' + f.group);
+      if(f.canalLevel !== 'ALL') parts.push('cấp kênh=' + f.canalLevel);
+      if(f.status !== 'ALL') parts.push('trạng thái=' + f.status);
+      if(f.keyword) parts.push('từ khóa="' + f.keyword + '"');
+
+      box.textContent = parts.length ? 'Đang lọc: ' + parts.join(', ') : 'Không có điều kiện lọc.';
+
+      lakeLayer.changed();
+      canalLayer.changed();
+      structureLayer.changed();
+      stationLayer.changed();
+      rainLayer.changed();
+      alertLayer.changed();
+
+      updateStats();
+      renderAttributeTable();
+      renderEventLog();
+    }
+
+    function applyFilters(){
+      STATE.filters = getFilterValues();
+      updateFilterStatusBox();
+    }
+
+    function clearFilters(){
+      document.getElementById('filter-group').value = 'ALL';
+      document.getElementById('filter-canal-level').value = 'ALL';
+      document.getElementById('filter-status').value = 'ALL';
+      document.getElementById('filter-keyword').value = '';
+      STATE.filters = { group:'ALL', canalLevel:'ALL', status:'ALL', keyword:'' };
+      updateFilterStatusBox();
+    }
+
+    // ============================================================
+    // 20) SEARCH
+    // ============================================================
+    function searchFeatureByName(keyword){
+      const q = (keyword || '').trim().toLowerCase();
+      if(!q) return null;
+
+      const all = getAllFeatures();
+      let found = all.find(f => String(f.get('name') || '').toLowerCase() === q);
+      if(!found) found = all.find(f => String(f.get('name') || '').toLowerCase().includes(q));
+      return found || null;
+    }
+
+    function runSearch(){
+      const q = document.getElementById('search-input').value.trim();
+      const out = document.getElementById('search-result');
+
+      if(!q){
+        out.textContent = 'Nhập tên đối tượng cần tìm.';
+        return;
+      }
+
+      const feature = searchFeatureByName(q);
+      if(!feature){
+        out.textContent = 'Không tìm thấy đối tượng phù hợp.';
+        return;
+      }
+
+      out.textContent = `Đã tìm thấy: ${feature.get('name') || 'Đối tượng'} (${getFeatureDisplayType(feature)})`;
+      zoomToFeature(feature);
+    }
+
+    // ============================================================
+    // 21) IMPORT GEOJSON
+    // ============================================================
+    function normalizeImportedFeature(feature, idx){
+      if(!feature.getId()) feature.setId('import_' + Date.now() + '_' + idx);
+      if(!feature.get('name')) feature.set('name', 'Imported feature ' + (idx + 1));
+      if(!feature.get('feature_group')) feature.set('feature_group', 'import');
+    }
+
+    function loadGeoJSONFromInput(){
+      const input = document.getElementById('file-geojson');
+      const file = input.files && input.files[0];
+      if(!file){
+        alert('Hãy chọn file GeoJSON trước.');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(e){
+        try{
+          const text = e.target.result;
+          const features = format.readFeatures(text, {
+            dataProjection:'EPSG:4326',
+            featureProjection:'EPSG:3857'
+          });
+
+          if(!features.length){
+            alert('Không đọc được feature nào từ file.');
+            return;
+          }
+
+          features.forEach((f, idx) => normalizeImportedFeature(f, idx));
+          importSource.clear();
+          importSource.addFeatures(features);
+
+          STATE.activeAttributeTab = 'import';
+          syncActiveTabButtons();
+          renderAttributeTable();
+
+          const extent = importSource.getExtent();
+          if(extent && !isNaN(extent[0])){
+            map.getView().fit(extent, {
+              padding:[60,60,60,60],
+              duration:700,
+              maxZoom:15
+            });
+          }
+
+          alert('Đã nạp ' + features.length + ' đối tượng vào lớp tạm.');
+        }catch(err){
+          console.error(err);
+          alert('Không đọc được GeoJSON. Hãy kiểm tra file đầu vào.');
+        }
+      };
+      reader.readAsText(file, 'utf-8');
+    }
+
+    // ============================================================
+    // 22) MEASURE
+    // ============================================================
+    let draw = null;
+    let snap = null;
+    let measureTooltipEl = null;
+    let measureTooltipOverlay = null;
+    let helpTooltipEl = null;
+    let helpTooltipOverlay = null;
+    let sketchFeature = null;
+
+    const measureInfo = document.getElementById('measure-info');
+
+    function formatLength(line){
+      const length = getLength(line, { projection: map.getView().getProjection() });
+      if(length > 1000) return (length / 1000).toFixed(2) + ' km';
+      return length.toFixed(2) + ' m';
+    }
+
+    function formatArea(polygon){
+      const area = getArea(polygon, { projection: map.getView().getProjection() });
+      if(area > 1000000) return (area / 1000000).toFixed(2) + ' km²';
+      return area.toFixed(2) + ' m²';
+    }
+
+    function createMeasureTooltip(){
+      if(measureTooltipEl && measureTooltipEl.parentNode){
+        measureTooltipEl.parentNode.removeChild(measureTooltipEl);
+      }
+      measureTooltipEl = document.createElement('div');
+      measureTooltipEl.className = 'ol-tooltip ol-tooltip-measure';
+      measureTooltipOverlay = new Overlay({
+        element:measureTooltipEl,
+        offset:[0,-15],
+        positioning:'bottom-center'
+      });
+      map.addOverlay(measureTooltipOverlay);
+    }
+
+    function createHelpTooltip(){
+      if(helpTooltipEl && helpTooltipEl.parentNode){
+        helpTooltipEl.parentNode.removeChild(helpTooltipEl);
+      }
+      helpTooltipEl = document.createElement('div');
+      helpTooltipEl.className = 'ol-tooltip hidden';
+      helpTooltipOverlay = new Overlay({
+        element:helpTooltipEl,
+        offset:[15,0],
+        positioning:'center-left'
+      });
+      map.addOverlay(helpTooltipOverlay);
+    }
+
+    function removeDrawInteractions(){
+      if(draw){ map.removeInteraction(draw); draw = null; }
+      if(snap){ map.removeInteraction(snap); snap = null; }
+      sketchFeature = null;
+      if(helpTooltipEl) helpTooltipEl.classList.add('hidden');
+      measureInfo.textContent = 'Đã dừng chế độ đo.';
+    }
+
+    function addMeasureInteraction(type){
+      removeDrawInteractions();
+      hidePopup();
+
+      draw = new Draw({
+        source:measureSource,
+        type:type,
+        style:measureStyle
+      });
+
+      map.addInteraction(draw);
+      snap = new Snap({ source:measureSource });
+      map.addInteraction(snap);
+
+      createMeasureTooltip();
+      createHelpTooltip();
+
+      let listener;
+
+      draw.on('drawstart', function(evt){
+        sketchFeature = evt.feature;
+        let tooltipCoord = evt.coordinate;
+
+        listener = sketchFeature.getGeometry().on('change', function(e){
+          const geom = e.target;
+          let output = '';
+
+          if(geom instanceof Polygon){
+            output = formatArea(geom);
+            tooltipCoord = geom.getInteriorPoint().getCoordinates();
+            measureInfo.textContent = 'Diện tích hiện tại: ' + output;
+          }else if(geom instanceof LineString){
+            output = formatLength(geom);
+            tooltipCoord = geom.getLastCoordinate();
+            measureInfo.textContent = 'Chiều dài hiện tại: ' + output;
+          }
+
+          measureTooltipEl.innerHTML = output;
+          measureTooltipOverlay.setPosition(tooltipCoord);
+        });
+      });
+
+      draw.on('drawend', function(){
+        measureTooltipEl.className = 'ol-tooltip ol-tooltip-static';
+        measureTooltipOverlay.setOffset([0,-7]);
+        sketchFeature = null;
+        measureTooltipEl = null;
+        createMeasureTooltip();
+        ol.Observable.unByKey(listener);
+      });
+
+      measureInfo.textContent = type === 'LineString'
+        ? 'Đang đo chiều dài. Click để vẽ các điểm, double-click để kết thúc.'
+        : 'Đang đo diện tích. Click để vẽ polygon, double-click để kết thúc.';
+    }
+
+    // ============================================================
+    // 23) EXPORT PNG
+    // ============================================================
+    function exportMapPng(){
+      map.once('rendercomplete', function(){
+        const mapCanvas = document.createElement('canvas');
+        const size = map.getSize();
+        mapCanvas.width = size[0];
+        mapCanvas.height = size[1];
+        const mapContext = mapCanvas.getContext('2d');
+
+        Array.prototype.forEach.call(
+          document.querySelectorAll('.ol-layer canvas'),
+          function(canvas){
+            if(canvas.width > 0){
+              const opacity = canvas.parentNode.style.opacity;
+              mapContext.globalAlpha = opacity === '' ? 1 : Number(opacity);
+
+              let matrix;
+              const transform = canvas.style.transform;
+              if(transform && transform.startsWith('matrix(')){
+                matrix = transform.match(/^matrix\(([^)]*)\)$/)[1].split(',').map(Number);
+              }else{
+                matrix = [1,0,0,1,0,0];
+              }
+
+              CanvasRenderingContext2D.prototype.setTransform.apply(mapContext, matrix);
+
+              const bg = canvas.parentNode.style.backgroundColor;
+              if(bg){
+                mapContext.fillStyle = bg;
+                mapContext.fillRect(0,0,canvas.width,canvas.height);
+              }
+
+              mapContext.drawImage(canvas, 0, 0);
+            }
+          }
+        );
+
+        mapContext.setTransform(1,0,0,1,0,0);
+
+        const link = document.createElement('a');
+        link.download = 'dau_tieng_production_webgis.png';
+        link.href = mapCanvas.toDataURL('image/png');
+        link.click();
+      });
+
+      map.renderSync();
+    }
+
+    // ============================================================
+    // 24) STATUS / CLOCK
+    // ============================================================
+    function updateClock(){
+      const d = new Date();
+      const txt = d.toLocaleString('vi-VN');
+      document.getElementById('current-time-text').textContent = txt;
+    }
+
+    function updateStatusBar(pointerLonLat){
+      document.getElementById('status-module').textContent = 'Module: ' + moduleLabel(STATE.module);
+
+      if(STATE.selectedFeature){
+        document.getElementById('status-selection').textContent =
+          'Selection: ' + (STATE.selectedFeature.get('name') || STATE.selectedFeature.getId());
+      }else{
+        document.getElementById('status-selection').textContent = 'Selection: none';
+      }
+
+      const zoom = map.getView().getZoom();
+      document.getElementById('status-zoom').textContent = 'Zoom: ' + (zoom ? zoom.toFixed(2) : '--');
+
+      if(pointerLonLat){
+        document.getElementById('status-pointer').textContent =
+          'Lon/Lat: ' + pointerLonLat[0].toFixed(5) + ', ' + pointerLonLat[1].toFixed(5);
+      }
+    }
+
+    function moduleLabel(m){
+      switch(m){
+        case 'overview': return 'Tổng quan hồ';
+        case 'canal': return 'Mạng kênh';
+        case 'structure': return 'Công trình';
+        case 'station': return 'Quan trắc';
+        case 'forecast': return 'Mưa & cảnh báo';
+        case 'operation': return 'Vận hành';
+        default: return m;
+      }
+    }
+
+    // ============================================================
+    // 25) MAP INTERACTIONS
+    // ============================================================
+    map.on('pointermove', function(evt){
+      if(evt.dragging) return;
+
+      let found = null;
+      map.forEachFeatureAtPixel(evt.pixel, function(feature, layer){
+        if([lakeLayer, canalLayer, structureLayer, stationLayer, rainLayer, alertLayer, importLayer].includes(layer)){
+          found = feature;
+          return true;
+        }
+      });
+
+      if(found){
+        setHighlight(found);
+        map.getTargetElement().style.cursor = 'pointer';
+      }else{
+        if(STATE.selectedFeature) setHighlight(STATE.selectedFeature);
+        else clearHighlight();
+        map.getTargetElement().style.cursor = '';
+      }
+
+      updateStatusBar(toLonLat(evt.coordinate));
+    });
+
+    map.on('singleclick', function(evt){
+      let found = null;
+      map.forEachFeatureAtPixel(evt.pixel, function(feature, layer){
+        if([lakeLayer, canalLayer, structureLayer, stationLayer, rainLayer, alertLayer, importLayer].includes(layer)){
+          found = feature;
+          return true;
+        }
+      });
+
+      if(found){
+        selectFeature(found, evt.coordinate);
+      }else{
+        STATE.selectedFeature = null;
+        renderSelectedDetail(null);
+        hidePopup();
+        clearHighlight();
+        highlightSelectedRow();
+        updateStatusBar();
+      }
+    });
+
+    map.getView().on('change:resolution', () => updateStatusBar());
+
+    // help tooltip move
+    map.on('pointermove', function(evt){
+      if(!helpTooltipEl || evt.dragging || !draw) return;
+
+      let msg = 'Click để bắt đầu đo';
+      if(sketchFeature){
+        const geom = sketchFeature.getGeometry();
+        if(geom instanceof Polygon) msg = 'Click để tiếp tục polygon, double-click để kết thúc';
+        else if(geom instanceof LineString) msg = 'Click để tiếp tục line, double-click để kết thúc';
+      }
+
+      helpTooltipEl.innerHTML = msg;
+      helpTooltipEl.classList.remove('hidden');
+      helpTooltipOverlay.setPosition(evt.coordinate);
+    });
+
+    // ============================================================
+    // 26) UI BINDINGS
+    // ============================================================
+
+    // module buttons
+    document.querySelectorAll('.module-btn').forEach(btn => {
+      btn.addEventListener('click', () => setModule(btn.dataset.module));
+    });
+    document.getElementById('module-focus-select').addEventListener('change', e => setModule(e.target.value));
+
+    // layer checkboxes
+    document.getElementById('chk-osm').addEventListener('change', e => osmLayer.setVisible(e.target.checked));
+    document.getElementById('chk-lake').addEventListener('change', e => lakeLayer.setVisible(e.target.checked));
+    document.getElementById('chk-canals').addEventListener('change', e => canalLayer.setVisible(e.target.checked));
+    document.getElementById('chk-structures').addEventListener('change', e => structureLayer.setVisible(e.target.checked));
+    document.getElementById('chk-stations').addEventListener('change', e => stationLayer.setVisible(e.target.checked));
+    document.getElementById('chk-rain').addEventListener('change', e => rainLayer.setVisible(e.target.checked));
+    document.getElementById('chk-alerts').addEventListener('change', e => alertLayer.setVisible(e.target.checked));
+
+    document.getElementById('chk-canal-labels').addEventListener('change', e => {
+      STATE.showCanalLabels = e.target.checked;
+      canalLayer.changed();
+    });
+
+    document.getElementById('chk-structure-labels').addEventListener('change', e => {
+      STATE.showStructureLabels = e.target.checked;
+      structureLayer.changed();
+    });
+
+    document.getElementById('chk-station-labels').addEventListener('change', e => {
+      STATE.showStationLabels = e.target.checked;
+      stationLayer.changed();
+    });
+
+    // basemap
+    document.getElementById('basemap-select').addEventListener('change', e => {
+      const v = e.target.value;
+      if(v === 'osm'){
+        osmLayer.setVisible(document.getElementById('chk-osm').checked);
+      }else{
+        osmLayer.setVisible(false);
+      }
+    });
+
+    // filters
+    document.getElementById('btn-apply-filter').addEventListener('click', applyFilters);
+    document.getElementById('btn-clear-filter').addEventListener('click', clearFilters);
+
+    // search
+    document.getElementById('btn-search').addEventListener('click', runSearch);
+    document.getElementById('search-input').addEventListener('keydown', e => {
+      if(e.key === 'Enter') runSearch();
+    });
+    document.getElementById('btn-clear-search').addEventListener('click', () => {
+      document.getElementById('search-input').value = '';
+      document.getElementById('search-result').textContent = 'Đã xóa tìm kiếm.';
+    });
+
+    // attribute tabs
+    document.querySelectorAll('#attribute-tabs .tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        STATE.activeAttributeTab = btn.dataset.tab;
+        syncActiveTabButtons();
+        renderAttributeTable();
+      });
+    });
+
+    // import
+    document.getElementById('btn-load-geojson').addEventListener('click', loadGeoJSONFromInput);
+    document.getElementById('btn-clear-import').addEventListener('click', () => {
+      importSource.clear();
+      renderAttributeTable();
+    });
+
+    // measure
+    document.getElementById('btn-measure-line').addEventListener('click', () => addMeasureInteraction('LineString'));
+    document.getElementById('btn-measure-area').addEventListener('click', () => addMeasureInteraction('Polygon'));
+    document.getElementById('btn-stop-measure').addEventListener('click', removeDrawInteractions);
+    document.getElementById('btn-clear-measure').addEventListener('click', () => {
+      removeDrawInteractions();
+      measureSource.clear();
+      measureInfo.textContent = 'Đã xóa toàn bộ kết quả đo.';
+    });
+
+    // export
+    document.getElementById('btn-export').addEventListener('click', exportMapPng);
+    document.getElementById('btn-top-export').addEventListener('click', exportMapPng);
+
+    // fit/reset
+    document.getElementById('btn-fit-lake').addEventListener('click', fitLake);
+    document.getElementById('btn-reset').addEventListener('click', () => {
+      hidePopup();
+      clearHighlight();
+      removeDrawInteractions();
+      STATE.selectedFeature = null;
+      renderSelectedDetail(null);
+
+      map.getView().setCenter(defaultCenter);
+      map.getView().setZoom(defaultZoom);
+      setTimeout(fitLake, 50);
+
+      document.getElementById('search-input').value = '';
+      document.getElementById('search-result').textContent = 'Đã reset bản đồ.';
+      highlightSelectedRow();
+      updateStatusBar();
+    });
+
+    // timeline
+    document.getElementById('time-slider').addEventListener('input', e => {
+      setTimeStep(Number(e.target.value));
+    });
+    document.getElementById('btn-time-prev').addEventListener('click', () => setTimeStep(STATE.timeStep - 1));
+    document.getElementById('btn-time-next').addEventListener('click', () => setTimeStep(STATE.timeStep + 1));
+
+    // ============================================================
+    // 27) INIT
+    // ============================================================
+    function initTimelineLabels(){
+      const el = document.getElementById('timeline-labels');
+      el.innerHTML = TIME_STEPS.map(ts => `<span>${escapeHtml(ts.label)}</span>`).join('');
+      document.getElementById('time-slider').max = String(TIME_STEPS.length - 1);
+    }
+
+    function init(){
+      initTimelineLabels();
+      fitLake();
+      setTimeStep(0);
+      setModule('overview');
+      renderDashboard();
+      renderSelectedDetail(null);
+      renderEventLog();
+      renderAttributeTable();
+      updateStats();
+      updateFilterStatusBox();
+      updateClock();
+      updateStatusBar();
+
+      setInterval(updateClock, 1000);
+    }
+
+    init();
+  </script>
+</body>
+</html>
+
