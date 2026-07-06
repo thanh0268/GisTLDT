@@ -968,6 +968,11 @@
             <span class="swatch sw-water"></span>
             <label for="chk-lake">Hồ Dầu Tiếng</label>
           </div>
+          <div class="tree-item">
+            <input type="checkbox" id="chk-lake2" checked />
+            <span class="swatch sw-water"></span>
+            <label for="chk-lake2">Hồ Phước Hòa</label>
+          </div>
 
           <div class="tree-item">
             <input type="checkbox" id="chk-canals" checked />
@@ -1292,6 +1297,8 @@
 
   <script src="https://cdn.jsdelivr.net/npm/ol@v10.6.1/dist/ol.js"></script>
   <script src="phuochoa-watershed-boundary.js"></script>  
+  <script src="DauTieng-sub-basins.js"></script>  
+  
 
   <script>
     // ============================================================
@@ -1803,7 +1810,8 @@
       });
     }
 
-    const lakeFeatures = readFC(DATA_LAKE);
+    const lakeFeatures = readFC(DT_DATA_LAKE);
+    const lakeFeatures2 = readFC(PH_DATA_LAKE);
     const canalFeatures = readFC(DATA_CANALS);
     const structureFeatures = readFC(DATA_STRUCTURES);
     const stationFeatures = readFC(DATA_STATIONS);
@@ -1825,6 +1833,7 @@
     }
 
     ensureFeatureIds(lakeFeatures, 'lake');
+    ensureFeatureIds(lakeFeatures2, 'lake2');
     ensureFeatureIds(canalFeatures, 'canal');
     ensureFeatureIds(structureFeatures, 'structure');
     ensureFeatureIds(stationFeatures, 'station');
@@ -1835,6 +1844,7 @@
     // 4) SOURCES
     // ============================================================
     const lakeSource = new VectorSource({ features: lakeFeatures });
+    const lakeSource2 = new VectorSource({ features: lakeFeatures2 });
     const canalSource = new VectorSource({ features: canalFeatures });
     const structureSource = new VectorSource({ features: structureFeatures });
     const stationSource = new VectorSource({ features: stationFeatures });
@@ -2080,6 +2090,11 @@
       visible:true,
       style:(feature) => featurePassesFilter(feature) ? lakeStyle : null
     });
+    const lakeLayer2 = new VectorLayer({
+      source:lakeSource2,
+      visible:true,
+      style:(feature) => featurePassesFilter(feature) ? lakeStyle : null
+    });
 
     const canalLayer = new VectorLayer({
       source:canalSource,
@@ -2190,6 +2205,7 @@
         osmLayer,
         rainLayer,
         lakeLayer,
+        lakeLayer2,
         canalLayer,
         structureLayer,
         stationLayer,
@@ -2213,6 +2229,7 @@
     function getAllFeatures(){
       return [
         ...lakeSource.getFeatures(),
+        ...lakeSource2.getFeatures(),
         ...canalSource.getFeatures(),
         ...structureSource.getFeatures(),
         ...stationSource.getFeatures(),
@@ -2326,6 +2343,7 @@
       switch(moduleName){
         case 'overview':
           lakeLayer.setVisible(true);
+          lakeLayer2.setVisible(true);
           canalLayer.setVisible(true);
           structureLayer.setVisible(true);
           stationLayer.setVisible(true);
@@ -2335,6 +2353,7 @@
 
         case 'canal':
           lakeLayer.setVisible(true);
+          lakeLayer2.setVisible(true);
           canalLayer.setVisible(true);
           structureLayer.setVisible(false);
           stationLayer.setVisible(false);
@@ -2345,6 +2364,7 @@
 
         case 'structure':
           lakeLayer.setVisible(true);
+          lakeLayer2.setVisible(true);
           canalLayer.setVisible(true);
           structureLayer.setVisible(true);
           stationLayer.setVisible(false);
@@ -2355,6 +2375,7 @@
 
         case 'station':
           lakeLayer.setVisible(true);
+          lakeLayer2.setVisible(true);
           canalLayer.setVisible(false);
           structureLayer.setVisible(false);
           stationLayer.setVisible(true);
@@ -2365,6 +2386,7 @@
 
         case 'forecast':
           lakeLayer.setVisible(true);
+          lakeLayer2.setVisible(true);
           canalLayer.setVisible(false);
           structureLayer.setVisible(false);
           stationLayer.setVisible(true);
@@ -2375,6 +2397,7 @@
 
         case 'operation':
           lakeLayer.setVisible(true);
+          lakeLayer2.setVisible(true);
           canalLayer.setVisible(true);
           structureLayer.setVisible(true);
           stationLayer.setVisible(true);
@@ -2393,6 +2416,7 @@
 
     function syncCheckboxesFromLayers(){
       document.getElementById('chk-lake').checked = lakeLayer.getVisible();
+      document.getElementById('chk-lake2').checked = lakeLayer2.getVisible();
       document.getElementById('chk-canals').checked = canalLayer.getVisible();
       document.getElementById('chk-structures').checked = structureLayer.getVisible();
       document.getElementById('chk-stations').checked = stationLayer.getVisible();
@@ -2695,6 +2719,7 @@
       box.textContent = parts.length ? 'Đang lọc: ' + parts.join(', ') : 'Không có điều kiện lọc.';
 
       lakeLayer.changed();
+      lakeLayer2.changed();
       canalLayer.changed();
       structureLayer.changed();
       stationLayer.changed();
@@ -3024,7 +3049,7 @@
 
       let found = null;
       map.forEachFeatureAtPixel(evt.pixel, function(feature, layer){
-        if([lakeLayer, canalLayer, structureLayer, stationLayer, rainLayer, alertLayer, importLayer].includes(layer)){
+        if([lakeLayer,lakeLayer2, canalLayer, structureLayer, stationLayer, rainLayer, alertLayer, importLayer].includes(layer)){
           found = feature;
           return true;
         }
@@ -3045,7 +3070,7 @@
     map.on('singleclick', function(evt){
       let found = null;
       map.forEachFeatureAtPixel(evt.pixel, function(feature, layer){
-        if([lakeLayer, canalLayer, structureLayer, stationLayer, rainLayer, alertLayer, importLayer].includes(layer)){
+        if([lakeLayer,lakeLayer2, canalLayer, structureLayer, stationLayer, rainLayer, alertLayer, importLayer].includes(layer)){
           found = feature;
           return true;
         }
@@ -3094,6 +3119,7 @@
     // layer checkboxes
     document.getElementById('chk-osm').addEventListener('change', e => osmLayer.setVisible(e.target.checked));
     document.getElementById('chk-lake').addEventListener('change', e => lakeLayer.setVisible(e.target.checked));
+    document.getElementById('chk-lake2').addEventListener('change', e => lakeLayer2.setVisible(e.target.checked));
     document.getElementById('chk-canals').addEventListener('change', e => canalLayer.setVisible(e.target.checked));
     document.getElementById('chk-structures').addEventListener('change', e => structureLayer.setVisible(e.target.checked));
     document.getElementById('chk-stations').addEventListener('change', e => stationLayer.setVisible(e.target.checked));
