@@ -1298,6 +1298,10 @@
   <script src="https://cdn.jsdelivr.net/npm/ol@v10.6.1/dist/ol.js"></script>
   <script src="phuochoa-watershed-boundary.js"></script>  
   <script src="DauTieng-sub-basins.js"></script>  
+  <script src="phuochoa-sub-basins.js"></script>  
+  
+  <script src="river.js"></script>  
+  <script src="cannal.js"></script>  
   
 
   <script>
@@ -1353,109 +1357,109 @@
     // };
 
     // ---- 1.4 Kênh
-    const DATA_CANALS = {
-      "type":"FeatureCollection",
-      "features":[
-        {
-          "type":"Feature",
-          "properties":{
-            "id":"canal_main_east",
-            "name":"Kênh chính Đông",
-            "feature_group":"canal",
-            "cap_kenh":"main",
-            "status":"active",
-            "length_km":35.2,
-            "capacity_m3s":42,
-            "served_area_ha":28000
-          },
-          "geometry":{"type":"LineString","coordinates":[[106.38,11.34],[106.52,11.28],[106.70,11.22]]}
-        },
-        {
-          "type":"Feature",
-          "properties":{
-            "id":"canal_i_01",
-            "name":"Kênh cấp I-01",
-            "feature_group":"canal",
-            "cap_kenh":"I",
-            "status":"active",
-            "length_km":12.4,
-            "capacity_m3s":12,
-            "served_area_ha":7600
-          },
-          "geometry":{"type":"LineString","coordinates":[[106.52,11.28],[106.60,11.35]]}
-        },
-        {
-          "type":"Feature",
-          "properties":{
-            "id":"canal_i_02",
-            "name":"Kênh cấp I-02",
-            "feature_group":"canal",
-            "cap_kenh":"I",
-            "status":"active",
-            "length_km":11.2,
-            "capacity_m3s":10,
-            "served_area_ha":6400
-          },
-          "geometry":{"type":"LineString","coordinates":[[106.44,11.36],[106.55,11.44]]}
-        },
-        {
-          "type":"Feature",
-          "properties":{
-            "id":"canal_ii_01",
-            "name":"Kênh cấp II-01",
-            "feature_group":"canal",
-            "cap_kenh":"II",
-            "status":"active",
-            "length_km":8.1,
-            "capacity_m3s":4.2,
-            "served_area_ha":2100
-          },
-          "geometry":{"type":"LineString","coordinates":[[106.60,11.35],[106.68,11.39]]}
-        },
-        {
-          "type":"Feature",
-          "properties":{
-            "id":"canal_ii_02",
-            "name":"Kênh cấp II-02",
-            "feature_group":"canal",
-            "cap_kenh":"II",
-            "status":"active",
-            "length_km":6.8,
-            "capacity_m3s":3.8,
-            "served_area_ha":1800
-          },
-          "geometry":{"type":"LineString","coordinates":[[106.53,11.27],[106.60,11.20]]}
-        },
-        {
-          "type":"Feature",
-          "properties":{
-            "id":"canal_iii_01",
-            "name":"Kênh cấp III-01",
-            "feature_group":"canal",
-            "cap_kenh":"III",
-            "status":"maintenance",
-            "length_km":5.3,
-            "capacity_m3s":1.2,
-            "served_area_ha":700
-          },
-          "geometry":{"type":"LineString","coordinates":[[106.46,11.30],[106.55,11.20]]}
-        },
-        {
-          "type":"Feature",
-          "properties":{
-            "id":"canal_iii_02",
-            "name":"Kênh cấp III-02",
-            "feature_group":"canal",
-            "cap_kenh":"III",
-            "status":"active",
-            "length_km":4.7,
-            "capacity_m3s":1.1,
-            "served_area_ha":620
-          },
-          "geometry":{"type":"LineString","coordinates":[[106.58,11.31],[106.63,11.25]]}
-        }
-      ]
-    };
+    // const DATA_CANALS = {
+    //   "type":"FeatureCollection",
+    //   "features":[
+    //     {
+    //       "type":"Feature",
+    //       "properties":{
+    //         "id":"canal_main_east",
+    //         "name":"Kênh chính Đông",
+    //         "feature_group":"canal",
+    //         "cap_kenh":"main",
+    //         "status":"active",
+    //         "length_km":35.2,
+    //         "capacity_m3s":42,
+    //         "served_area_ha":28000
+    //       },
+    //       "geometry":{"type":"LineString","coordinates":[[106.38,11.34],[106.52,11.28],[106.70,11.22]]}
+    //     },
+    //     {
+    //       "type":"Feature",
+    //       "properties":{
+    //         "id":"canal_i_01",
+    //         "name":"Kênh cấp I-01",
+    //         "feature_group":"canal",
+    //         "cap_kenh":"I",
+    //         "status":"active",
+    //         "length_km":12.4,
+    //         "capacity_m3s":12,
+    //         "served_area_ha":7600
+    //       },
+    //       "geometry":{"type":"LineString","coordinates":[[106.52,11.28],[106.60,11.35]]}
+    //     },
+    //     {
+    //       "type":"Feature",
+    //       "properties":{
+    //         "id":"canal_i_02",
+    //         "name":"Kênh cấp I-02",
+    //         "feature_group":"canal",
+    //         "cap_kenh":"I",
+    //         "status":"active",
+    //         "length_km":11.2,
+    //         "capacity_m3s":10,
+    //         "served_area_ha":6400
+    //       },
+    //       "geometry":{"type":"LineString","coordinates":[[106.44,11.36],[106.55,11.44]]}
+    //     },
+    //     {
+    //       "type":"Feature",
+    //       "properties":{
+    //         "id":"canal_ii_01",
+    //         "name":"Kênh cấp II-01",
+    //         "feature_group":"canal",
+    //         "cap_kenh":"II",
+    //         "status":"active",
+    //         "length_km":8.1,
+    //         "capacity_m3s":4.2,
+    //         "served_area_ha":2100
+    //       },
+    //       "geometry":{"type":"LineString","coordinates":[[106.60,11.35],[106.68,11.39]]}
+    //     },
+    //     {
+    //       "type":"Feature",
+    //       "properties":{
+    //         "id":"canal_ii_02",
+    //         "name":"Kênh cấp II-02",
+    //         "feature_group":"canal",
+    //         "cap_kenh":"II",
+    //         "status":"active",
+    //         "length_km":6.8,
+    //         "capacity_m3s":3.8,
+    //         "served_area_ha":1800
+    //       },
+    //       "geometry":{"type":"LineString","coordinates":[[106.53,11.27],[106.60,11.20]]}
+    //     },
+    //     {
+    //       "type":"Feature",
+    //       "properties":{
+    //         "id":"canal_iii_01",
+    //         "name":"Kênh cấp III-01",
+    //         "feature_group":"canal",
+    //         "cap_kenh":"III",
+    //         "status":"maintenance",
+    //         "length_km":5.3,
+    //         "capacity_m3s":1.2,
+    //         "served_area_ha":700
+    //       },
+    //       "geometry":{"type":"LineString","coordinates":[[106.46,11.30],[106.55,11.20]]}
+    //     },
+    //     {
+    //       "type":"Feature",
+    //       "properties":{
+    //         "id":"canal_iii_02",
+    //         "name":"Kênh cấp III-02",
+    //         "feature_group":"canal",
+    //         "cap_kenh":"III",
+    //         "status":"active",
+    //         "length_km":4.7,
+    //         "capacity_m3s":1.1,
+    //         "served_area_ha":620
+    //       },
+    //       "geometry":{"type":"LineString","coordinates":[[106.58,11.31],[106.63,11.25]]}
+    //     }
+    //   ]
+    // };
 
     // ---- 1.5 Công trình
     const DATA_STRUCTURES = {
@@ -1471,7 +1475,7 @@
             "status":"active",
             "gate_open_pct":62
           },
-          "geometry":{"type":"Point","coordinates":[106.39,11.33]}
+          "geometry":{"type":"Point","coordinates":[106.3395,11.32316]}
         },
         {
           "type":"Feature",
@@ -1483,7 +1487,21 @@
             "status":"active",
             "gate_open_pct":54
           },
-          "geometry":{"type":"Point","coordinates":[106.47,11.37]}
+          
+          "geometry":{"type":"Point","coordinates":[106.25470,11.37294]}
+        },
+         {
+          "type":"Feature",
+          "properties":{
+            "id":"sluice_03",
+            "name":"Cống lấy nước số 3",
+            "feature_group":"structure",
+            "type":"sluice",
+            "status":"active",
+            "gate_open_pct":54
+          },
+          
+          "geometry":{"type":"Point","coordinates":[106.22513,11.43742]}
         },
         {
           "type":"Feature",
@@ -1811,7 +1829,9 @@
     }
 
     const lakeFeatures = readFC(DT_DATA_LAKE);
-    const lakeFeatures2 = readFC(PH_DATA_LAKE);
+    
+    const lakeFeatures2 = readFC(PH_DATA_SUB);
+    //const lakeFeatures2 = readFC(PH_DATA_LAKE);
     const canalFeatures = readFC(DATA_CANALS);
     const structureFeatures = readFC(DATA_STRUCTURES);
     const stationFeatures = readFC(DATA_STATIONS);
